@@ -75,3 +75,19 @@ class Employee(models.Model):
         verbose_name = "کارمند"
         verbose_name_plural = "کارمندان"
         ordering = ['last_name', 'first_name']
+
+
+class Shift(models.Model):
+    employees = models.ManyToManyField(Employee, related_name='shifts')
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    occasion = models.CharField(max_length=100, blank=True, null=True, help_text="مثلاً شب یلدا، عید فطر، ...")
+    created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='created_shifts')
+
+    def __str__(self):
+        return f"شیفت {self.occasion or self.start_time.date()}"
+
+    class Meta:
+        verbose_name = "شیفت"
+        verbose_name_plural = "شیفت‌ها"
+        ordering = ['-start_time']
