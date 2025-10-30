@@ -66,19 +66,14 @@ class Employee(models.Model):
 
 
 class Shift(models.Model):
-    employees = models.ManyToManyField(Employee, related_name='shifts')
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="shifts")
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    occasion = models.CharField(max_length=100, blank=True, null=True, help_text="مثلاً شب یلدا، عید فطر، ...")
-    created_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, related_name='created_shifts')
+    occasion = models.CharField(max_length=100, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"شیفت {self.occasion or self.start_time.date()}"
-
-    class Meta:
-        verbose_name = "شیفت"
-        verbose_name_plural = "شیفت‌ها"
-        ordering = ['-start_time']
+        return f"{self.employee} | {self.start_time.strftime('%Y-%m-%d %H:%M')}"
 
 
 class ShiftLog(models.Model):
