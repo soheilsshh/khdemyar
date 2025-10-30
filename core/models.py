@@ -91,3 +91,20 @@ class Shift(models.Model):
         verbose_name = "شیفت"
         verbose_name_plural = "شیفت‌ها"
         ordering = ['-start_time']
+
+
+class ShiftLog(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='shift_logs')
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='logs')
+    check_in = models.DateTimeField()
+    check_out = models.DateTimeField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"حضور {self.employee} در {self.shift}"
+
+    class Meta:
+        verbose_name = "ثبت حضور"
+        verbose_name_plural = "سوابق حضور"
+        ordering = ['-check_in']
+
