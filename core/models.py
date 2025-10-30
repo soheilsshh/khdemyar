@@ -108,3 +108,19 @@ class ShiftLog(models.Model):
         verbose_name_plural = "سوابق حضور"
         ordering = ['-check_in']
 
+class BlogPost(models.Model):
+    author = models.ForeignKey(Employee, on_delete=models.CASCADE, limit_choices_to={'is_admin': True})
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_published = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = "پست وبلاگ"
+        verbose_name_plural = "پست‌های وبلاگ"
+        ordering = ['-created_at']
