@@ -1,5 +1,14 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
+
+
+class User(AbstractUser):
+    is_admin = models.BooleanField(default=False)  
+    is_approved = models.BooleanField(default=False)  
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+
+    def __str__(self):
+        return self.username
 
 
 
@@ -7,7 +16,7 @@ class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employee_profile')
     is_admin = models.BooleanField(default=False, help_text="اگر True باشد، کاربر مدیر است")
 
-    # اطلاعات شخصی
+
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     national_code = models.CharField(max_length=10, unique=True)
@@ -50,14 +59,11 @@ class Employee(models.Model):
     education_level = models.CharField(max_length=20, choices=education_level_choices, blank=True, null=True)
     field_of_study = models.CharField(max_length=100, blank=True, null=True)
 
-    # تماس و مشخصات شغلی
     phone = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     join_date = models.DateField(auto_now_add=True)
     shift_count = models.PositiveIntegerField(default=0)
     has_criminal_record = models.BooleanField(default=False, help_text="آیا دارای سوءپیشینه است؟")
-
-    # اطلاعات تکمیلی
     nationality = models.CharField(max_length=50, blank=True, null=True)
     religion = models.CharField(max_length=50, blank=True, null=True)
     sect = models.CharField(max_length=50, blank=True, null=True)
