@@ -76,21 +76,6 @@ class Shift(models.Model):
         return f"{self.employee} | {self.start_time.strftime('%Y-%m-%d %H:%M')}"
 
 
-class ShiftLog(models.Model):
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='shift_logs')
-    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='logs')
-    check_in = models.DateTimeField()
-    check_out = models.DateTimeField(blank=True, null=True)
-    notes = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return f"حضور {self.employee} در {self.shift}"
-
-    class Meta:
-        verbose_name = "ثبت حضور"
-        verbose_name_plural = "سوابق حضور"
-        ordering = ['-check_in']
-
 class BlogPost(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_admin': True})
     title = models.CharField(max_length=200)
@@ -102,3 +87,20 @@ class BlogPost(models.Model):
 
     def __str__(self):
         return self.title
+    
+    
+    
+# class ShiftLog(models.Model):
+#     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='shift_logs')
+#     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name='logs')
+#     check_in = models.DateTimeField()
+#     check_out = models.DateTimeField(blank=True, null=True)
+#     notes = models.TextField(blank=True, null=True)
+
+#     def __str__(self):
+#         return f"حضور {self.employee} در {self.shift}"
+
+#     class Meta:
+#         verbose_name = "ثبت حضور"
+#         verbose_name_plural = "سوابق حضور"
+#         ordering = ['-check_in']
