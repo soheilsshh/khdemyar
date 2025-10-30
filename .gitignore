@@ -139,3 +139,5 @@ GitHub.sublime-settings
 
 
 task.txt
+run.bat
+*.bat
