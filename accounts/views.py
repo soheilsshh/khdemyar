@@ -19,6 +19,14 @@ class UserViewSet(viewsets.ModelViewSet):
         elif self.action in ['approve', 'reject', 'pending_requests']:
             return [permissions.IsAdminUser()]
         return super().get_permissions()
+    
+    def get_serializer_class(self):
+        if self.action == 'register':
+            return RegisterSerializer
+        if self.action == 'login':
+            return LoginSerializer
+
+        return UserSerializer
 
 
     @action(detail=False, methods=['post'])
