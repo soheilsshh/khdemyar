@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from .models import Employee
-from .serializers import EmployeeSerializer
+from .serializers import EmployeeSerializer , EmployeeListSerializer
 from .permissions import IsAdminOrSelf
 
 User = get_user_model()
@@ -21,6 +21,11 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.select_related('user').all()
     serializer_class = EmployeeSerializer
     permission_classes = [IsAdminOrSelf]
+    
+    def get_serializer_class(self):
+        if self.action in ['list', 'me']:
+            return EmployeeListSerializer
+        return EmployeeSerializer
 
     def get_queryset(self):
         user = self.request.user

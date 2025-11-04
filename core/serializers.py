@@ -6,9 +6,6 @@ User = get_user_model()
 
 
 class UserShortSerializer(serializers.ModelSerializer):
-    shift_count = serializers.IntegerField(source='employee.shift_count', read_only=True)
-    has_criminal_record = serializers.BooleanField(source='employee.has_criminal_record', read_only=True)
-
     class Meta:
         model = User
         fields = ['id',
@@ -16,9 +13,28 @@ class UserShortSerializer(serializers.ModelSerializer):
                   'email',
                   'first_name',
                   'last_name',
-                  'shift_count',
-                  'has_criminal_record'
                   ]
+        
+        
+class EmployeeListSerializer(serializers.ModelSerializer):
+    user = UserShortSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source='user',
+        write_only=True,
+        required=False
+    )
+    class Meta:
+        model = Employee
+        fields = ['id',
+                  'user',
+                  'user_id',
+                  'first_name',
+                  'last_name',
+                  'national_id',
+                  'phone']
+    
+
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
