@@ -10,14 +10,6 @@ User = get_user_model()
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    """
-    Endpoints:
-      - GET /api/core/employees/         -> لیست کارمندان (فقط مدیر)
-      - GET /api/core/employees/{id}/    -> مشاهده جزئیات (مدیر یا خود کارمند)
-      - PATCH /api/core/employees/{id}/  -> ویرایش جزئیات (مدیر یا خود کارمند)
-      - DELETE /api/core/employees/{id}/ -> حذف (فقط مدیر)
-      - GET /api/core/employees/me/      -> پروفایل کارمند لاگین‌شده
-    """
     queryset = Employee.objects.select_related('user').all()
     serializer_class = EmployeeSerializer
     permission_classes = [IsAdminOrSelf]
@@ -35,7 +27,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def me(self, request):
-        """پروفایل کاربر فعلی را نمایش می‌دهد"""
         user = request.user
         try:
             employee = Employee.objects.get(user=user)

@@ -72,12 +72,26 @@ class Shift(models.Model):
     occasion = models.CharField(max_length=100, blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+            ordering = ['-start_time']
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_active:
+            active_shifts = self.employee.shifts.filter(is_active=True).count()
+            self.employee.shift_count = active_shifts
+            self.employee.save(update_fields=['shift_count'])
+
     def __str__(self):
         return f"{self.employee} | {self.start_time.strftime('%Y-%m-%d %H:%M')}"
 
 
 class BlogPost(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_admin': True})
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'is_admin': True}
+        )
     title = models.CharField(max_length=200)
     content = models.TextField()
     image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
