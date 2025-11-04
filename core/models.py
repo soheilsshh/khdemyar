@@ -71,6 +71,10 @@ class Shift(models.Model):
     end_time = models.DateTimeField()
     occasion = models.CharField(max_length=100, blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='created_shifts'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
             ordering = ['-start_time']
