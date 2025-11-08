@@ -36,6 +36,44 @@ class EmployeeRegisterSerializer(serializers.ModelSerializer):
             'home_address', 
             'military_status'
         ]
+        extra_kwargs = {
+            'national_id': {'validators': []},  
+        }
+    def validate(self, data):
+        username = data['username']
+        phone_number = data['phone_number']
+        national_id = data['national_id']
+
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError({"username": "این نام کاربری قبلاً استفاده شده است."})
+        if User.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError({"phone_number": "این شماره موبایل قبلاً ثبت شده است."})
+        if Employee.objects.filter(national_id=national_id).exists():
+            raise serializers.ValidationError({"national_id": "کارمندی با این کد ملی قبلاً ثبت‌نام کرده است."})
+
+        return data
+
+    def create(self, validated_data):
+        username = validated_data.pop('username')
+        password = validated_data.pop('password')
+        phone_number = validated_data.pop('phone_number')
+
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            phone_number=phone_number,
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            is_active=False
+        )
+
+        employee = Employee.objects.create(
+            user=user,
+            status='pending',
+            **validated_data
+        )
+
+        return employee
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
