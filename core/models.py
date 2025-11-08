@@ -60,6 +60,16 @@ class Employee(models.Model):
         ("serving", "در حال خدمت"),
         ("not_applicable", "غیر مشمول")
     ])
+    
+    status = models.CharField(
+        max_length=10,
+        choices=[
+            ('pending', 'در انتظار'),
+            ('approved', 'تأیید شده'),
+            ('rejected', 'رد شده')
+        ],
+        default='pending'
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
