@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   web:
     build: .
@@ -7,10 +9,13 @@ services:
       - .env
     volumes:
       - .:/app
-      - static_volume:/app/static
+      - static_volume:/app/staticfiles
       - media_volume:/app/media
     expose:
       - "8000"
+    # اضافه کن تا لاگ ببینی
+    stdin_open: true
+    tty: true
 
   nginx:
     image: nginx:alpine
@@ -18,9 +23,10 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      # اگر SSL می‌خوای بعداً 443 هم اضافه کن
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - static_volume:/app/static:ro
+      - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
     depends_on:
       - web
