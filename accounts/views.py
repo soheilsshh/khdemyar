@@ -139,6 +139,29 @@ class UserViewSet(viewsets.ModelViewSet):
                 'created_at': emp.user.date_joined.isoformat()
             })
         return Response(data)
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    def rejected_requests(self, request):
+        """
+        نمایش لیست کارمندانی که درخواستشون توسط مدیر رد شده
+        """
+        employees = Employee.objects.filter(status='rejected').select_related('user').order_by('-user__date_joined')
+        
+        data = []
+        for emp in employees:
+            data.append({
+                'employee_id': emp.id,
+                'username': emp.user.username,
+                'phone_number': emp.user.phone_number,
+                'first_name': emp.first_name,
+                'last_name': emp.last_name,
+                'national_id': emp.national_id,
+                'phone': emp.phone,
+                'status': emp.get_status_display(),  # مثلاً "رد شده"
+                'rejected_at': emp.user.date_joined.isoformat(),  
+            })
+        
+        return Response(data)
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
