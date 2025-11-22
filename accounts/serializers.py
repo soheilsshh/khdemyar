@@ -21,6 +21,8 @@ class RegistrationRequestListSerializer(serializers.ModelSerializer):
             'full_name',
             'national_id',
             'phone',
+            'education_level',
+            'criminal_record',
             'status',
             'created_at',
         ]
