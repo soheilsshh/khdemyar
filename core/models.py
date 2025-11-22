@@ -41,8 +41,14 @@ class Employee(models.Model):
     nationality = models.CharField(max_length=50)
     religion = models.CharField(max_length=50, blank=True, null=True)
     sect = models.CharField(max_length=50, blank=True, null=True)
-    has_criminal_record = models.BooleanField(default=False)
+    criminal_record = models.TextField(blank=True, null=True)  # Added: تغییر از has_criminal_record بولین به TextField برای تطبیق با textarea در HTML (سوء پیشینه با توضیحات)
     employment_date = models.DateField(auto_now_add=True)
+    registration_date = models.DateField(auto_now_add=True)  # Added: تاریخ ثبت نام (از HTML)
+    current_job = models.CharField(max_length=100, blank=True, null=True)  # Added: شغل فعلی (از HTML)
+    religious_background = models.TextField(blank=True, null=True)  # Added: سابقه فعالیت مذهبی (textarea در HTML)
+    disability = models.TextField(blank=True, null=True)  # Added: بیماری یا معلولیت خاص (textarea در HTML)
+    skills = models.TextField(blank=True, null=True)  # Added: مهارت یا تخصص (textarea در HTML)
+    profile_image = models.ImageField(upload_to='employee_profiles/', blank=True, null=True)  # Added: برای آپلود تصویر پروفایل (از بخش img در HTML)
 
     # اطلاعات تماس
     phone = models.CharField(max_length=20)
@@ -51,6 +57,12 @@ class Employee(models.Model):
     home_phone = models.CharField(max_length=20, blank=True, null=True)
     work_address = models.TextField(blank=True, null=True)
     home_address = models.TextField(blank=True, null=True)
+
+    # اطلاعات معرف‌ها
+    ref1_name = models.CharField(max_length=100, blank=True, null=True)  # Added: نام معرف اول (از HTML)
+    ref1_phone = models.CharField(max_length=20, blank=True, null=True)  # Added: شماره معرف اول (از HTML)
+    ref2_name = models.CharField(max_length=100, blank=True, null=True)  # Added: نام معرف دوم (از HTML)
+    ref2_phone = models.CharField(max_length=20, blank=True, null=True)  # Added: شماره معرف دوم (از HTML)
 
     # اطلاعات کاری
     shift_count = models.PositiveIntegerField(default=0)
@@ -70,6 +82,7 @@ class Employee(models.Model):
         ],
         default='pending'
     )
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_employees')  # Added: تأیید شده توسط (ForeignKey به User، از HTML)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
