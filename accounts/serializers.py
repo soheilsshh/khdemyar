@@ -34,7 +34,6 @@ class ApprovalActionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=['approve', 'reject'], write_only=True)
 
 
-
 class EmployeeRegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
@@ -142,4 +141,12 @@ class OTPVerifySerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_active', 'is_approved']
+        fields = [
+            'id', 
+            'username', 
+            'email', 
+            'first_name', 
+            'last_name', 
+            'is_active', 
+            'is_approved'
+            ]

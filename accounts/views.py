@@ -156,27 +156,36 @@ class RegistrationRequestViewSet(viewsets.ModelViewSet):
     # تأیید درخواست
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        employee = self.get_object()
+        employee = self.get_object() 
         if employee.status != 'pending':
-            return Response({'detail': 'این درخواست قابل تأیید نیست.'}, status=400)
+            return Response({'detail': 'این درخواست قبلاً بررسی شده است.'}, status=400)
 
+        # فعال کردن کاربر
         employee.user.is_active = True
         employee.user.is_approved = True
         employee.user.save()
+
+        # تغییر وضعیت کارمند
         employee.status = 'approved'
         employee.save()
 
-        return Response({'detail': 'کاربر با موفقیت تأیید شد.'})
+        return Response({
+            'detail': 'درخواست با موفقیت تأیید شد.'
+        })
 
-    # رد درخواست
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
         employee = self.get_object()
+        
         if employee.status != 'pending':
-            return Response({'detail': 'این درخواست قابل رد نیست.'}, status=400)
+            return Response({'detail': 'این درخواست قبلاً بررسی شده است.'}, status=400)
 
-        employee.user.delete()  # هر دو حذف میشن
-        return Response({'detail': 'درخواست رد شد و کاربر حذف گردید.'})       
+        employee.status = 'rejected'
+        employee.save()
+
+        return Response({
+            'detail': 'درخواست با موفقیت رد شد.'
+        })   
 
 
 
