@@ -39,7 +39,16 @@ class EmployeeListSerializer(serializers.ModelSerializer):
 class EmployeeSerializer(serializers.ModelSerializer):
     user = UserShortSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source='user', write_only=True, required=False
+        queryset=User.objects.all(),
+        source='user',
+        write_only=True,
+        required=False
+    )
+
+    # نمایش نام کامل تأییدکننده (اگر فیلد approved_by داری)
+    approved_by_name = serializers.CharField(
+        source='approved_by.get_full_name' if hasattr(Employee, 'approved_by') else None,
+        read_only=True
     )
 
     class Meta:
@@ -48,6 +57,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'id',
             'user',
             'user_id',
+
+            # اطلاعات شخصی
             'first_name',
             'last_name',
             'national_id',
@@ -61,24 +72,83 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'nationality',
             'religion',
             'sect',
-            'has_criminal_record',
-            'employment_date',
+
+            'criminal_record',           # حالا TextField هست (توضیحات سوءپیشینه)
+            'current_job',               # شغل فعلی
+            'religious_background',      # سابقه فعالیت مذهبی
+            'disability',                # بیماری یا معلولیت خاص
+            'skills',                    # مهارت‌ها و تخصص‌ها
+            'profile_image',             # عکس پروفایل
+
+            # تاریخ‌ها
+            'registration_date',         # تاریخ ثبت‌نام
+            'employment_date',           # تاریخ استخدام
+
+            # اطلاعات تماس
             'phone',
             'social_phone',
             'work_phone',
             'home_phone',
             'work_address',
             'home_address',
+
+            # معرف‌ها
+            'ref1_name',
+            'ref1_phone',
+            'ref2_name',
+            'ref2_phone',
+
+            # وضعیت و خدمت
+            'military_status',
+            'status',                    # pending / approved / rejected
             'shift_count',
-            'military_status'
+
+            # تأییدکننده (اختیاری)
+            'approved_by',
+            'approved_by_name',
         ]
-        read_only_fields = ['id', 'user', 'employment_date', 'shift_count']
+
+        read_only_fields = [
+            'id',
+            'user',
+            'employment_date',
+            'registration_date',
+            'shift_count',
+            'approved_by_name',
+        ]
+
+        extra_kwargs = {
+            'profile_image': {'required': False},
+            'criminal_record': {'required': False},
+            'current_job': {'required': False},
+            'religious_background': {'required': False},
+            'disability': {'required': False},
+            'skills': {'required': False},
+            'ref1_name': {'required': False},
+            'ref1_phone': {'required': False},
+            'ref2_name': {'required': False},
+            'ref2_phone': {'required': False},
+        }
 
     def create(self, validated_data):
-        user = validated_data.pop('user', None)
-        if user is None:
-            raise serializers.ValidationError("برای ایجاد کارمند باید user مشخص شود (user_id).")
-        return Employee.objects.create(user=user, **validated_data)
+        user_data = validated_data.pop('user', None)
+        if not user_data:
+            raise serializers.ValidationError({"user_id": "مشخص کردن کاربر الزامی است."})
+        return Employee.objects.create(user=user_data, **validated_data)
+
+    def update(self, instance, validated_data):
+        # اگر مدیر بخواد وضعیت رو تأیید کنه، approved_by رو پر کن
+        if 'status' in validated_data and validated_data['status'] == 'approved':
+            request = self.context.get('request')
+            if request and request.user.is_authenticated:
+                validated_data['approved_by'] = request.user
+
+        # آپلود عکس پروفایل
+        profile_image = validated_data.get('profile_image')
+        if profile_image is not None:
+            instance.profile_image = profile_image
+
+        return super().update(instance, validated_data)
 
 class ShiftSerializer(serializers.ModelSerializer):
     employee = EmployeeListSerializer(read_only=True)
