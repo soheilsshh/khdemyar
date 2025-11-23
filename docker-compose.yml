@@ -10,9 +10,15 @@ services:
       - ./.env                     # همه متغیرها از اینجا میاد
     expose:
       - "8000"
-    restart: unless-stopped                  # فقط داخل شبکه داکر در دسترسه، نه بیرون
-    # ports:                       # این خط رو عمداً کامنت کردیم
-    #   - "8000:8000"
+    restart: unless-stopped
+
+  frontend:                        
+    build: ./frontend               
+    expose:
+      - "3000"
+    restart: unless-stopped
+    depends_on:
+      - web
 
   nginx:
     build: ./nginx
