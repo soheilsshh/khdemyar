@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
   frontend:                        
-    build: ./frontend               
+    build: ./front              
     expose:
       - "3000"
     restart: unless-stopped
