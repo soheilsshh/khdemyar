@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "DanaDemiBold";
+  font-display: swap;
+  src: url("../assets/fonts/Dana/woff2/DanaFaNum-DemiBold.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "DanaMedium";
+  font-display: swap;
+  src: url("../assets/fonts/Dana/woff2/DanaFaNum-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Dana";
+  font-display: swap;
+  src: url("../assets/fonts/Dana/woff2/DanaFaNum-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "MorabbaDemiBold";
+  font-display: swap;
+  src: url("../assets/fonts/Morabba/woff2/Morabba-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "MorabbaMedium";
+  font-display: swap;
+  src: url("../assets/fonts/Morabba/woff2/Morabba-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Morabba";
+  font-display: swap;
+  src: url("../assets/fonts/Morabba/woff2/Morabba-Light.woff2") format("woff2");
+}
+
+/* ----------- IranianSans --------- */
+@font-face {
+  font-family: "IranianSansDemiBold";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-DemiBold.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "IranianSansBlack";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-Black.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "IranianSansExtraBlack";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-ExtraBlack.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "IranianSansMedium";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-Medium.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "IranianSansLight";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-Light.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "IranianSansUltraLight";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-UltraLight.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "IranianSansRegular";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-Regular.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "IranianSansHeavy";
+  font-display: swap;
+  src: url("../assets/fonts/IRANSans/IRANSansXFaNum-Heavy.woff2")
+    format("woff2");
+}
+
+@theme {
+  /* fonts */
+  --font-dana: Dana;
+  --font-danaDemiBold: DanaDemiBold;
+  --font-danaMedium: DanaMedium;
+  --font-morabbaDemiBold: MorabbaDemiBold;
+  --font-morabbaMedium: MorabbaMedium;
+  --font-morabba: Morabba;
+
+  --font-iranianSansBlack: IranianSansBlack;
+  --font-iranianSansExtraBlack: IranianSansExtraBlack;
+
+  --font-iranianSansDemiBold: IranianSansDemiBold;
+
+  --font-iranianSansMedium: IranianSansMedium;
+  --font-iranianSansLight: IranianSansLight;
+  --font-iranianUltraLight: IranianSansUltraLight;
+  --font-iranianSansRegular: IranianSansRegular;
+  --font-iranianSansHeavy: IranianSansHeavy;
+
+  /* colors */
+  --color-dGreen: #00b894;
+  --color-dMain: #b0db9c;
+  --color-dSecond: #ddf6d2;
+  --color-dThird: #eefae8;
+}
+
+.placeholder-rtl::placeholder {
+  text-align: right;
+}
+
+.active {
+    @apply bg-[#A1C398];
+}
+
+
+body {
+  @apply font-iranianSansRegular box-border;
+}
+
+.btn {
+  @apply bg-green-700 text-white w-full h-11 cursor-pointer shadow-lg rounded-lg;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
