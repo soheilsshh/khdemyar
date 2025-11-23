@@ -1,0 +1,32 @@
+# docker-compose.yml
+version: '3.9'
+
+services:
+  web:
+    build: ./backend
+    command: gunicorn django_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    env_file:
+      - ./.env                     # همه متغیرها از اینجا میاد
+    expose:
+      - "8000"                     # فقط داخل شبکه داکر در دسترسه، نه بیرون
+    # ports:                       # این خط رو عمداً کامنت کردیم
+    #   - "8000:8000"
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"                    # فقط 80 از بیرون بازه
+      - "443:443"                  # بعداً برای HTTPS
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - web
+
+volumes:
+  static_volume:
+  media_volume:
