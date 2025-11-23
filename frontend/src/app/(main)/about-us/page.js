@@ -1,7 +1,7 @@
 import Image from "next/image";
 import React from "react";
-import ImageSection from "../_components/imageSection";
-import ListSection from "../_components/listSection";
+import ImageSection from "../_components/ImageSection";
+import ListSection from "../_components/ListSection";
 
 const images = [
   "/images/Picture3.jpg",
