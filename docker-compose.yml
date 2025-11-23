@@ -1,7 +1,7 @@
 services:
   web:
     build: ./backend
-    command: gunicorn django_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
       - static_volume:/app/staticfiles
