@@ -98,17 +98,88 @@ class ShiftViewSet(viewsets.ModelViewSet):
                            'reject_request']:
             return [permissions.IsAdminUser()]
         return super().get_permissions()
+    permission_classes = [permissions.IsAuthenticated]
+
+    
+    def get_serializer_class(self):
+        if self.action == ['list']:
+            return ShiftListSerializer        
+        if self.action in ['get_requests' , 'request_shift']:
+            return ShiftRequestSerializer
+        return ShiftSerializer
+    
+    def get_permissions(self):
+        if self.action in ['create', 'update', 
+                           'partial_update', 'destroy', 
+                           'get_requests', 'approve_request', 
+                           'reject_request']:
+            return [permissions.IsAdminUser()]
+        return super().get_permissions()
 
     def get_queryset(self):
         queryset = Shift.objects.select_related(
+            'created_by'
             'created_by'
         ).filter(is_active=True)
 
         employee_id = self.request.query_params.get('employee')
         if employee_id:
             queryset = queryset.filter(assignments__employee_id=employee_id)
+            queryset = queryset.filter(assignments__employee_id=employee_id)
 
         return queryset
+
+    @action(detail=False, methods=['get'], url_path='current')
+    def current(self, request):
+        now = timezone.now()
+        queryset = self.get_queryset().filter(start_time__lte=now, end_time__gte=now)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='requests')
+    def get_requests(self, request, pk=None):
+        shift = self.get_object()
+        requests = shift.requests.all()
+        serializer = ShiftRequestSerializer(requests, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='approve_request')
+    def approve_request(self, request, pk=None):
+        shift = self.get_object()
+        request_id = request.data.get('request_id')
+        try:
+            shift_request = shift.requests.get(id=request_id)
+            shift_request.approve()
+            return Response({'status': 'approved'})
+        except ShiftRequest.DoesNotExist:
+            return Response({'error': 'Request not found'}, status=404)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+
+    @action(detail=True, methods=['post'], url_path='reject_request')
+    def reject_request(self, request, pk=None):
+        shift = self.get_object()
+        request_id = request.data.get('request_id')
+        try:
+            shift_request = shift.requests.get(id=request_id)
+            shift_request.reject()
+            return Response({'status': 'rejected'})
+        except ShiftRequest.DoesNotExist:
+            return Response({'error': 'Request not found'}, status=404)
+
+    @action(detail=True, methods=['post'], url_path='request')
+    def request_shift(self, request, pk=None):
+        shift = self.get_object()
+        try:
+            employee = Employee.objects.get(user=request.user)
+        except Employee.DoesNotExist:
+            return Response({'error': 'Employee profile not found'}, status=404)
+        if ShiftRequest.objects.filter(shift=shift, employee=employee).exists():
+            return Response({'error': 'Already requested'}, status=400)
+        if shift.is_full(employee.gender):
+            return Response({'error': 'Shift is full for your gender'}, status=400)
+        ShiftRequest.objects.create(shift=shift, employee=employee)
+        return Response({'status': 'requested'})
 
     @action(detail=False, methods=['get'], url_path='current')
     def current(self, request):
