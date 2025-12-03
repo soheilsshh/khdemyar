@@ -88,21 +88,97 @@ class Employee(models.Model):
 
 
 class Shift(models.Model):
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="shifts")
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    occasion = models.CharField(max_length=100, blank=True, null=True)
-    is_active = models.BooleanField(default=True)
+
+    start_time = models.DateTimeField(verbose_name="زمان شروع")
+    end_time = models.DateTimeField(verbose_name="زمان پایان")
+    occasion = models.CharField(max_length=100, blank=True, null=True, verbose_name="مناسبت")
+    max_males = models.PositiveIntegerField(default=0, verbose_name="حداکثر تعداد مردان")  # ظرفیت مردان
+    max_females = models.PositiveIntegerField(default=0, verbose_name="حداکثر تعداد زنان")  # ظرفیت زنان
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
     created_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name='created_shifts'
+        User, on_delete=models.SET_NULL, null=True, related_name='created_shifts', verbose_name="ایجادکننده"
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان ایجاد")
 
     class Meta:
-            ordering = ['-start_time']
+        ordering = ['-start_time']
+        verbose_name = "شیفت"
+        verbose_name_plural = "شیفت‌ها"
 
     def __str__(self):
-        return f"{self.employee} | {self.start_time.strftime('%Y-%m-%d %H:%M')}"
+        return f"شیفت {self.start_time.strftime('%Y-%m-%d %H:%M')} - {self.occasion or 'بدون مناسبت'}"
+
+    @property
+    def current_males_count(self):
+        """تعداد مردان تاییدشده در این شیفت"""
+        return self.assignments.filter(employee__gender='male').count()
+
+    @property
+    def current_females_count(self):
+        """تعداد زنان تاییدشده در این شیفت"""
+        return self.assignments.filter(employee__gender='female').count()
+
+    def is_full(self, gender):
+        """چک ظرفیت پر بودن بر اساس جنسیت"""
+        if gender == 'male':
+            return self.current_males_count >= self.max_males
+        elif gender == 'female':
+            return self.current_females_count >= self.max_females
+        return False
+
+
+class ShiftRequest(models.Model):
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="requests", verbose_name="شیفت")
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="shift_requests", verbose_name="کارمند")
+    status = models.CharField(
+        max_length=10,
+        choices=[
+            ('pending', 'در انتظار'),
+            ('approved', 'تایید شده'),
+            ('rejected', 'رد شده')
+        ],
+        default='pending',
+        verbose_name="وضعیت"
+    )
+    requested_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان درخواست")
+    approved_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_shift_requests', verbose_name="تاییدکننده"
+    )
+
+    class Meta:
+        unique_together = ('shift', 'employee')  
+        verbose_name = "درخواست شیفت"
+        verbose_name_plural = "درخواست‌های شیفت"
+
+    def __str__(self):
+        return f"درخواست {self.employee} برای {self.shift}"
+
+    def approve(self):
+        if self.shift.is_full(self.employee.gender):
+            raise ValueError("ظرفیت شیفت پر شده است.")
+        self.status = 'approved'
+        self.approved_by = self.approved_by or self.shift.created_by  
+        self.save()
+        
+        ShiftAssignment.objects.create(shift=self.shift, employee=self.employee)
+
+    def reject(self):
+        self.status = 'rejected'
+        self.save()
+
+
+class ShiftAssignment(models.Model):
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, related_name="assignments", verbose_name="شیفت")
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="assigned_shifts", verbose_name="کارمند")
+    assigned_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان تخصیص")
+
+    class Meta:
+        unique_together = ('shift', 'employee')
+        verbose_name = "تخصیص شیفت"
+        verbose_name_plural = "تخصیص‌های شیفت"
+
+    def __str__(self):
+        return f"تخصیص {self.employee} به {self.shift}"
 
 
 class BlogPost(models.Model):
