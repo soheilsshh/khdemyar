@@ -2,6 +2,9 @@ from django.utils import timezone
 from rest_framework import viewsets, status , permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import filters
+
+from django_filters.rest_framework import DjangoFilterBackend
 
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
@@ -9,6 +12,7 @@ from django.db.models import Count, Q
 from .models import BlogPost, Employee, Shift
 from .serializers import BlogPostSerializer, EmployeeSerializer , EmployeeListSerializer, ShiftSerializer
 from .permissions import IsAdminOrSelf
+from .filters import EmployeeFilter
 
 User = get_user_model()
 
@@ -17,6 +21,14 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.select_related('user').all()
     serializer_class = EmployeeSerializer
     permission_classes = [IsAdminOrSelf]
+    
+    filter_backends = [
+            DjangoFilterBackend,
+            filters.OrderingFilter,
+        ]
+    filterset_class = EmployeeFilter
+    ordering_fields = ['first_name', 'last_name', 'user__date_joined', 'total_shifts_count']
+    ordering = ['first_name']
     
     def get_serializer_class(self):
         if self.action in ['list', 'me']:

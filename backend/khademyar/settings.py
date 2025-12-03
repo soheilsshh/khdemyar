@@ -51,8 +51,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    'rest_framework',
     'rest_framework_simplejwt',
+    'django_filters',
+    'rest_framework',
     'corsheaders',
     'drf_yasg',
     
