@@ -13,6 +13,7 @@ from .models import BlogPost, Employee, Shift
 from .serializers import BlogPostSerializer, EmployeeSerializer , EmployeeListSerializer, ShiftSerializer
 from .permissions import IsAdminOrSelf
 from .filters import EmployeeFilter
+from .pagination import PersianPagination
 
 User = get_user_model()
 
@@ -21,6 +22,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.select_related('user').all()
     serializer_class = EmployeeSerializer
     permission_classes = [IsAdminOrSelf]
+    pagination_class = PersianPagination
     
     filter_backends = [
             DjangoFilterBackend,
