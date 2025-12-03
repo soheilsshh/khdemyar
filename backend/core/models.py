@@ -13,7 +13,11 @@ class User(AbstractUser):
 
 
 class Employee(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="employee_profile")
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name="employee_profile"
+        )
 
     # اطلاعات شخصی
     first_name = models.CharField(max_length=50)
@@ -82,6 +86,14 @@ class Employee(models.Model):
         default='pending'
     )
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_employees')  # Added: تأیید شده توسط (ForeignKey به User، از HTML)
+    
+    is_staff_admin = models.BooleanField(default=False, verbose_name="دسترسی به پنل مدیریت")
+    can_manage_shifts = models.BooleanField(default=False, verbose_name="مدیریت شیفت‌ها")
+    can_manage_blog = models.BooleanField(default=False, verbose_name="مدیریت وبلاگ")
+    can_approve_registrations = models.BooleanField(default=False, verbose_name="تأیید درخواست‌های ثبت‌نام")
+    can_manage_khadamyaran = models.BooleanField(default=False, verbose_name="مدیریت خادمیاران")
+    can_manage_site_settings = models.BooleanField(default=False, verbose_name="مدیریت تنظیمات سایت")
+    can_manage_admins = models.BooleanField(default=False, verbose_name="مدیریت مدیران")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

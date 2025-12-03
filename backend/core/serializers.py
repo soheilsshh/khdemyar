@@ -25,6 +25,12 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         required=False
     )
     total_shifts_count = serializers.IntegerField(read_only=True)
+    is_staff_admin = serializers.BooleanField()
+    can_manage_shifts = serializers.BooleanField()
+    can_manage_blog = serializers.BooleanField()
+    can_approve_registrations = serializers.BooleanField()
+    can_manage_khadamyaran = serializers.BooleanField()
+    can_manage_site_settings = serializers.BooleanField()
     
     class Meta:
         model = Employee
@@ -38,6 +44,12 @@ class EmployeeListSerializer(serializers.ModelSerializer):
                   'status',
                   'total_shifts_count',
                   'criminal_record',
+                  'is_staff_admin',
+                  'can_manage_shifts',
+                  'can_manage_blog',
+                  'can_approve_registrations',
+                  'can_manage_khadamyaran',
+                  'can_manage_site_settings',
                   ]
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -109,6 +121,14 @@ class EmployeeSerializer(serializers.ModelSerializer):
             # تأییدکننده (اختیاری)
             'approved_by',
             'approved_by_name',
+            
+            'is_staff_admin',
+            'can_manage_shifts',
+            'can_manage_blog',
+            'can_approve_registrations',
+            'can_manage_khadamyaran',
+            'can_manage_site_settings',
+            'can_manage_admins',
         ]
 
         read_only_fields = [
@@ -118,6 +138,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'registration_date',
             'shift_count',
             'approved_by_name',
+            'is_staff_admin',
         ]
 
         extra_kwargs = {

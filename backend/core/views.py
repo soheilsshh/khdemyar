@@ -4,20 +4,15 @@ from rest_framework.response import Response
 from rest_framework import filters
 
 
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 
 from .models import BlogPost, Employee, Shift
-from .serializers import (BlogPostSerializer, 
-                          EmployeeSerializer , 
-                          EmployeeListSerializer, 
-                          ShiftListSerializer, 
-                          ShiftRequestSerializer, 
-                          ShiftSerializer, 
-                          UserShortSerializer)
-from .permissions import IsAdminOrSelf
+from .serializers import *
+from .permissions import *
 from .filters import EmployeeFilter
 from .pagination import PersianPagination
 
@@ -46,9 +41,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         if self.action in ['list', 'retrieve', 'me']:
-            queryset = queryset.annotate(
-                total_shifts_count=Count('shifts')
-            )
+            queryset = queryset.annotate(total_shifts_count=Count('assigned_shifts'))
         if not (self.request.user.is_admin or self.request.user.is_staff):
             queryset = queryset.filter(user=self.request.user)
         
@@ -68,12 +61,12 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def active_emp(self, request):
         now = timezone.now()
         active_employees = Employee.objects.filter(
-            shifts__start_time__lte=now,
-            shifts__end_time__gte=now,
-            shifts__is_active=True
+            assigned_shifts__start_time__lte=now,
+            assigned_shifts__end_time__gte=now,
+            assigned_shifts__shift__is_active=True  
         ).select_related('user').annotate(
-                total_shifts_count=Count('shifts')
-            ).distinct()
+            total_shifts_count=Count('assigned_shifts')
+        ).distinct()
 
         serializer = EmployeeListSerializer(active_employees, many=True)
         return Response(serializer.data)
@@ -92,29 +85,13 @@ class ShiftViewSet(viewsets.ModelViewSet):
         return ShiftSerializer
     
     def get_permissions(self):
-        if self.action in ['create', 'update', 
-                           'partial_update', 'destroy', 
-                           'get_requests', 'approve_request', 
-                           'reject_request']:
-            return [permissions.IsAdminUser()]
-        return super().get_permissions()
-    permission_classes = [permissions.IsAuthenticated]
-
-    
-    def get_serializer_class(self):
-        if self.action == ['list']:
-            return ShiftListSerializer        
-        if self.action in ['get_requests' , 'request_shift']:
-            return ShiftRequestSerializer
-        return ShiftSerializer
-    
-    def get_permissions(self):
-        if self.action in ['create', 'update', 
-                           'partial_update', 'destroy', 
-                           'get_requests', 'approve_request', 
-                           'reject_request']:
-            return [permissions.IsAdminUser()]
-        return super().get_permissions()
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsActiveAdmin(), CanManageShifts()]  
+        
+        if self.action in ['get_requests', 'approve_request', 'reject_request']:
+            return [IsActiveAdmin(), CanManageShifts()]
+        
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         queryset = Shift.objects.select_related(
@@ -240,8 +217,8 @@ class BlogPostViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            return [permissions.AllowAny()]  
-        return [permissions.IsAdminUser()] 
+            return [permissions.AllowAny()]
+        return [IsActiveAdmin(), CanManageBlog()] 
 
     def get_queryset(self):
         if self.request.user.is_authenticated and (self.request.user.is_admin or self.request.user.is_staff):
@@ -249,41 +226,82 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         return super().get_queryset().filter(is_published=True)
     
     
-# فقط سوپرادمین می‌تونه ادمین اضافه یا حذف کنه
-class AdminUserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.filter(is_admin=True)
-    serializer_class = UserShortSerializer  # یا یک سریالایزر اختصاصی
-    permission_classes = [permissions.IsAdminUser]  # فقط سوپرادمین
+class AdminManagementViewSet(viewsets.ModelViewSet):
+    queryset = Employee.objects.all()   
+    permission_classes = [IsSuperAdmin]
+
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return EmployeeListSerializer
+        return EmployeeSerializer   
+
 
     def get_queryset(self):
-
         if self.request.user.is_superuser:
-            return User.objects.filter(is_admin=True)
-        return User.objects.none()
+            return Employee.objects.select_related('user').all()
+        return Employee.objects.none()
 
-    @action(detail=False, methods=['post'], url_path='create-admin')
-    def create_admin(self, request):
-        if not request.user.is_superuser:
-            return Response({"error": "فقط سوپرادمین می‌تواند ادمین بسازد"}, status=403)
 
-        username = request.data.get('username')
-        password = request.data.get('password')
-        email = request.data.get('email', '')
-        phone_number = request.data.get('phone_number', '')
+    @action(detail=True, methods=['post'], url_path='promote')
+    def promote(self, request, pk=None):
+        employee = get_object_or_404(Employee, pk=pk)
 
-        if User.objects.filter(username=username).exists():
-            return Response({"error": "این نام کاربری قبلاً وجود دارد"}, status=400)
+        if employee.user.is_superuser:
+            return Response({"error": "سوپرادمین را نمی‌توان ویرایش کرد"}, status=403)
 
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            phone  =phone_number,
-            is_admin=True,       
-            is_staff=True,       
-        )
-        return Response({
-            "message": "ادمین با موفقیت ساخته شد",
-            "user_id": user.id,
-            "username": user.username
-        }, status=201)
+        if employee.is_staff_admin:
+            return Response({"error": "این کاربر قبلاً ادمین است"}, status=400)
+
+
+        employee.is_staff_admin = True
+        employee.user.is_staff = True   
+        employee.user.save()
+        employee.save()
+
+        return Response({"message": f"{employee} به ادمین تبدیل شد"}, status=200)
+
+
+    @action(detail=True, methods=['post'], url_path='demote')
+    def demote(self, request, pk=None):
+        employee = get_object_or_404(Employee, pk=pk)
+
+        if employee.user.is_superuser:
+            return Response({"error": "نمی‌توان سوپرادمین را حذف کرد"}, status=403)
+
+        if not employee.is_staff_admin:
+            return Response({"error": "این کاربر ادمین نیست"}, status=400)
+
+        employee.is_staff_admin = False
+        employee.user.is_staff = False
+        employee.user.save()
+        employee.save()
+
+        return Response({"message": f"{employee} از لیست ادمین‌ها حذف شد"}, status=200)
+
+
+    # @action(detail=True, methods=['patch'], url_path='permissions')
+    # def set_permissions(self, request, pk=None):
+    #     employee = get_object_or_404(Employee, pk=pk)
+
+
+    #     allowed_fields = {
+    #         'can_manage_shifts',
+    #         'can_manage_blog',
+    #         'can_approve_registrations',
+    #         # اگر موارد بیشتری داری اینجا اضافه کن
+    #     }
+
+    #     updated = False
+
+  
+    #     for field in allowed_fields:
+    #         if field in request.data:
+    #             setattr(employee, field, request.data[field])
+    #             updated = True
+
+    #     if not updated:
+    #         return Response({"error": "هیچ دسترسی‌ای ارسال نشده"}, status=400)
+
+    #     employee.save()
+    #     return Response({"message": "دسترسی‌ها بروز شد"}, status=200)

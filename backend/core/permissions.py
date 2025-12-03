@@ -1,77 +1,78 @@
 from rest_framework import permissions
+from.models import Employee
+
 
 class IsSuperAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_superuser
-        )
+        return bool(request.user and request.user.is_authenticated and request.user.is_superuser)
 
-class IsSystemAdmin(permissions.BasePermission):
+
+class IsActiveAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and getattr(request.user, 'is_admin', False)
-            and request.user.is_staff
-        )
+        if not request.user.is_authenticated:
+            return False
+        try:
+            return request.user.employee_profile.is_staff_admin == True
+        except (AttributeError, Employee.DoesNotExist):
+            return False
+
+
+class CanManageShifts(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.user.is_superuser:
+            return True
+        try:
+            return request.user.employee_profile.can_manage_shifts
+        except AttributeError:
+            return False
+
+
+class CanManageBlog(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.user.is_superuser:
+            return True
+        try:
+            return request.user.employee_profile.can_manage_blog
+        except AttributeError:
+            return False
+
+
+class CanApproveRegistrations(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.user.is_superuser:
+            return True
+        try:
+            return request.user.employee_profile.can_approve_registrations
+        except AttributeError:
+            return False
+
+
+class CanManageAdmins(permissions.BasePermission):
+    """فقط سوپرادمین اجازه داره مدیر اضافه/ویرایش کنه"""
+    def has_permission(self, request, view):
+        return request.user.is_superuser
 
 
 class IsAdminOrSelf(permissions.BasePermission):
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
+        if not request.user.is_authenticated:
+            return False
+        try:
+            if request.user.employee_profile.is_staff_admin:
+                return True
+        except AttributeError:
+            pass
+
+        if view.action in ['list', 'create', 'destroy']:
             return False
 
-        if getattr(request.user, 'is_admin', False) and request.user.is_staff:
-            return True
-
-        if view.action in ['list', 'create', 'destroy', 'update', 'partial_update']:
-            return False
-
-        return view.action in ['retrieve', 'me', 'update', 'partial_update']
+        return view.action in ['retrieve', 'update', 'partial_update', 'me']
 
     def has_object_permission(self, request, view, obj):
-        if getattr(request.user, 'is_admin', False) and request.user.is_staff:
-            return True
+        try:
+            if request.user.employee_profile.is_staff_admin:
+                return True
+        except AttributeError:
+            pass
 
-        if hasattr(obj, 'user'):
-            return obj.user == request.user
-        if hasattr(obj, 'employee') and hasattr(obj.employee, 'user'):
-            return obj.employee.user == request.user
-
-        return False
-
-
-class IsApprovedEmployee(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_active
-            and getattr(request.user, 'is_approved', False)
-        )
-
-
-class IsAdminOrReadOnly(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and getattr(request.user, 'is_admin', False)
-            and request.user.is_staff
-        )
-
-
-class IsApprovedEmployeeOrAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-
-        if getattr(request.user, 'is_admin', False) and request.user.is_staff:
-            return True
-
-        return request.user.is_active and getattr(request.user, 'is_approved', False)
-
+        return obj.user == request.user
