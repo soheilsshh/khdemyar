@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import BlogPost, Employee, Shift
+from .models import BlogPost, Employee, Shift , ShiftRequest
 
 User = get_user_model()
 
@@ -153,31 +153,95 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
         return super().update(instance, validated_data)
 
-class ShiftSerializer(serializers.ModelSerializer):
-    employee = EmployeeListSerializer(read_only=True)
-    employee_id = serializers.PrimaryKeyRelatedField(
-        queryset=Employee.objects.all(), source='employee', write_only=True
-    )
+
+class ShiftListSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    current_males = serializers.IntegerField(source='current_males_count', read_only=True)
+    current_females = serializers.IntegerField(source='current_females_count', read_only=True)
+    is_full_male = serializers.SerializerMethodField()
+    is_full_female = serializers.SerializerMethodField()
+    has_requested = serializers.SerializerMethodField()  
+
+    class Meta:
+        model = Shift
+        fields = [
+            'id', 
+            'start_time', 
+            'end_time', 
+            'occasion',
+            'max_males', 
+            'max_females',
+            'current_males', 
+            'current_females',
+            'is_full_male', 
+            'is_full_female',
+            'is_active', 
+            'created_by_name', 
+            'created_at',
+            'has_requested'
+        ]
+
+    def get_is_full_male(self, obj):
+        return obj.is_full('male')
+
+    def get_is_full_female(self, obj):
+        return obj.is_full('female')
+
+    def get_has_requested(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            try:
+                employee = Employee.objects.get(user=request.user)
+                return ShiftRequest.objects.filter(shift=obj, employee=employee).exists()
+            except Employee.DoesNotExist:
+                return False
+        return False
+
+
+class ShiftSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    current_males = serializers.IntegerField(source='current_males_count', read_only=True)
+    current_females = serializers.IntegerField(source='current_females_count', read_only=True)
 
     class Meta:
         model = Shift
         fields = [
             'id',
-            'employee',
-            'employee_id',
             'start_time',
             'end_time',
             'occasion',
+            'max_males',
+            'max_females',
+            'current_males',
+            'current_females',
             'is_active',
+            'created_by',
             'created_by_name',
-            'created_at'
+            'created_at',
         ]
-        read_only_fields = ['created_at', 'created_by_name']
+        read_only_fields = ['created_by', 'created_by_name', 'created_at', 'current_males', 'current_females']
 
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
+
+
+
+class ShiftRequestSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source='employee.__str__', read_only=True)
+    employee_national_id = serializers.CharField(source='employee.national_id', read_only=True)
+    requested_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M', read_only=True)
+
+    class Meta:
+        model = ShiftRequest
+        fields = [
+            'id',
+            'employee',
+            'employee_name',
+            'employee_national_id',
+            'status',
+            'requested_at',
+        ]
 
 
 class BlogPostSerializer(serializers.ModelSerializer):

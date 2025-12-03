@@ -102,8 +102,8 @@ class Shift(models.Model):
 
     class Meta:
         ordering = ['-start_time']
-        verbose_name = "شیفت"
-        verbose_name_plural = "شیفت‌ها"
+        verbose_name = "shift"
+        verbose_name_plural = "shifts"
 
     def __str__(self):
         return f"شیفت {self.start_time.strftime('%Y-%m-%d %H:%M')} - {self.occasion or 'بدون مناسبت'}"
@@ -147,8 +147,8 @@ class ShiftRequest(models.Model):
 
     class Meta:
         unique_together = ('shift', 'employee')  
-        verbose_name = "درخواست شیفت"
-        verbose_name_plural = "درخواست‌های شیفت"
+        verbose_name = "shift request"
+        verbose_name_plural = "shift requests"
 
     def __str__(self):
         return f"درخواست {self.employee} برای {self.shift}"
@@ -174,8 +174,8 @@ class ShiftAssignment(models.Model):
 
     class Meta:
         unique_together = ('shift', 'employee')
-        verbose_name = "تخصیص شیفت"
-        verbose_name_plural = "تخصیص‌های شیفت"
+        verbose_name = "shift assignment"
+        verbose_name_plural = "shift assignments"
 
     def __str__(self):
         return f"تخصیص {self.employee} به {self.shift}"
