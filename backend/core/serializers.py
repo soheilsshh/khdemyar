@@ -269,3 +269,15 @@ class BlogPostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
         return super().create(validated_data)
+    
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 
+                  'username', 
+                  'email', 
+                  'phone_number', 
+                  'date_joined'
+                  ]
+        read_only_fields = ['date_joined']

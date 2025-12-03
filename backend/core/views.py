@@ -1,16 +1,22 @@
-from django.utils import timezone
 from rest_framework import viewsets, status , permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import filters
 
-from django_filters.rest_framework import DjangoFilterBackend
 
+from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 
 from .models import BlogPost, Employee, Shift
-from .serializers import BlogPostSerializer, EmployeeSerializer , EmployeeListSerializer, ShiftListSerializer, ShiftRequestSerializer, ShiftSerializer
+from .serializers import (BlogPostSerializer, 
+                          EmployeeSerializer , 
+                          EmployeeListSerializer, 
+                          ShiftListSerializer, 
+                          ShiftRequestSerializer, 
+                          ShiftSerializer, 
+                          UserShortSerializer)
 from .permissions import IsAdminOrSelf
 from .filters import EmployeeFilter
 from .pagination import PersianPagination
@@ -170,3 +176,43 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         if self.request.user.is_authenticated and (self.request.user.is_admin or self.request.user.is_staff):
             return super().get_queryset()
         return super().get_queryset().filter(is_published=True)
+    
+    
+# فقط سوپرادمین می‌تونه ادمین اضافه یا حذف کنه
+class AdminUserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.filter(is_admin=True)
+    serializer_class = UserShortSerializer  # یا یک سریالایزر اختصاصی
+    permission_classes = [permissions.IsAdminUser]  # فقط سوپرادمین
+
+    def get_queryset(self):
+
+        if self.request.user.is_superuser:
+            return User.objects.filter(is_admin=True)
+        return User.objects.none()
+
+    @action(detail=False, methods=['post'], url_path='create-admin')
+    def create_admin(self, request):
+        if not request.user.is_superuser:
+            return Response({"error": "فقط سوپرادمین می‌تواند ادمین بسازد"}, status=403)
+
+        username = request.data.get('username')
+        password = request.data.get('password')
+        email = request.data.get('email', '')
+        phone_number = request.data.get('phone_number', '')
+
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "این نام کاربری قبلاً وجود دارد"}, status=400)
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            phone  =phone_number,
+            is_admin=True,       
+            is_staff=True,       
+        )
+        return Response({
+            "message": "ادمین با موفقیت ساخته شد",
+            "user_id": user.id,
+            "username": user.username
+        }, status=201)
