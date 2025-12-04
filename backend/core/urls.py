@@ -2,14 +2,12 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (AdminManagementViewSet, 
                     EmployeeViewSet, 
-                    ShiftViewSet, 
-                    BlogPostViewSet ,
+                    ShiftViewSet,
                     )
 
 router = DefaultRouter()
 router.register('employees', EmployeeViewSet, basename='employee')
 router.register('shifts', ShiftViewSet, basename='shift')
-router.register('blog', BlogPostViewSet, basename='blog')
 router.register('admins', AdminManagementViewSet, basename='admin-users')
 
 urlpatterns = [

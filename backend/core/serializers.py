@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import BlogPost, Employee, Shift , ShiftRequest
+from .models import Employee, Shift , ShiftRequest
 
 User = get_user_model()
 
@@ -264,34 +264,8 @@ class ShiftRequestSerializer(serializers.ModelSerializer):
             'requested_at',
         ]
 
-
-class BlogPostSerializer(serializers.ModelSerializer):
-    author = UserShortSerializer(read_only=True)
-    author_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(is_admin=True),
-        source='author', write_only=True
-    )
-
-    class Meta:
-        model = BlogPost
-        fields = [
-            'id',
-            'author',
-            'author_id',
-            'title',
-            'content',
-            'image',
-            'created_at',
-            'updated_at',
-            'is_published'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
-
-    def create(self, validated_data):
-        validated_data['author'] = self.context['request'].user
-        return super().create(validated_data)
     
-
+    
 class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

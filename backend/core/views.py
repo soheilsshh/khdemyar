@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 
-from .models import BlogPost, Employee, Shift
+from .models import Employee, Shift
 from .serializers import *
 from .permissions import *
 from .filters import EmployeeFilter
@@ -209,21 +209,6 @@ class ShiftViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Shift is full for your gender'}, status=400)
         ShiftRequest.objects.create(shift=shift, employee=employee)
         return Response({'status': 'requested'})
-
-
-class BlogPostViewSet(viewsets.ModelViewSet):
-    queryset = BlogPost.objects.select_related('author').all()
-    serializer_class = BlogPostSerializer
-
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.AllowAny()]
-        return [IsActiveAdmin(), CanManageBlog()] 
-
-    def get_queryset(self):
-        if self.request.user.is_authenticated and (self.request.user.is_admin or self.request.user.is_staff):
-            return super().get_queryset()
-        return super().get_queryset().filter(is_published=True)
     
     
 class AdminManagementViewSet(viewsets.ModelViewSet):
@@ -279,29 +264,3 @@ class AdminManagementViewSet(viewsets.ModelViewSet):
 
         return Response({"message": f"{employee} از لیست ادمین‌ها حذف شد"}, status=200)
 
-
-    # @action(detail=True, methods=['patch'], url_path='permissions')
-    # def set_permissions(self, request, pk=None):
-    #     employee = get_object_or_404(Employee, pk=pk)
-
-
-    #     allowed_fields = {
-    #         'can_manage_shifts',
-    #         'can_manage_blog',
-    #         'can_approve_registrations',
-    #         # اگر موارد بیشتری داری اینجا اضافه کن
-    #     }
-
-    #     updated = False
-
-  
-    #     for field in allowed_fields:
-    #         if field in request.data:
-    #             setattr(employee, field, request.data[field])
-    #             updated = True
-
-    #     if not updated:
-    #         return Response({"error": "هیچ دسترسی‌ای ارسال نشده"}, status=400)
-
-    #     employee.save()
-    #     return Response({"message": "دسترسی‌ها بروز شد"}, status=200)
