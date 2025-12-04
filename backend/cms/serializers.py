@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import News
+from .models import News, AboutUs
 
 
 class NewsListSerializer(serializers.ModelSerializer):
@@ -24,4 +24,17 @@ class NewsSerializer(serializers.ModelSerializer):
             'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at']
+
+
+class AboutUsSerializer(serializers.ModelSerializer):
+    """Serializer for About Us content"""
+    class Meta:
+        model = AboutUs
+        fields = [
+            'id',
+            'description',
+            'image',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'updated_at']
 

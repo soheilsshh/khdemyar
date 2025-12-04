@@ -1,8 +1,11 @@
 from rest_framework import viewsets, permissions
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from core.permissions import IsActiveAdmin, CanManageBlog
-from .models import News
-from .serializers import NewsSerializer, NewsListSerializer
+from .models import News, AboutUs
+from .serializers import NewsSerializer, NewsListSerializer, AboutUsSerializer
 
 
 class NewsViewSet(viewsets.ModelViewSet):
@@ -22,3 +25,36 @@ class NewsViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return NewsListSerializer
         return NewsSerializer
+
+
+class AboutUsView(APIView):
+    """
+    API View for managing About Us content (singleton).
+    GET: Retrieve the single AboutUs record
+    PATCH/PUT: Update the AboutUs record
+    """
+    permission_classes = [IsAuthenticated, IsActiveAdmin, CanManageBlog]
+
+    def get(self, request):
+        """Get the single AboutUs record, create if it doesn't exist"""
+        about_us = AboutUs.get_instance()
+        serializer = AboutUsSerializer(about_us)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        """Partially update the AboutUs record"""
+        about_us = AboutUs.get_instance()
+        serializer = AboutUsSerializer(about_us, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request):
+        """Full update of the AboutUs record"""
+        about_us = AboutUs.get_instance()
+        serializer = AboutUsSerializer(about_us, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
