@@ -12,13 +12,15 @@ services:
       - "8000"
     restart: unless-stopped
 
-  frontend:                        
-    build: ./frontend             
-    expose:
-      - "3000"
-    restart: unless-stopped
-    depends_on:
-      - web
+  # Temporarily disabled - frontend service commented out for backend testing
+  # TODO: Uncomment this block when ready to re-enable Next.js frontend
+  # frontend:                        
+  #   build: ./frontend             
+  #   expose:
+  #     - "3000"
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - web
 
   nginx:
     build: ./nginx
@@ -30,6 +32,7 @@ services:
       - media_volume:/app/media
     depends_on:
       - web
+      # frontend dependency removed - frontend service is temporarily disabled
 
 volumes:
   static_volume:
