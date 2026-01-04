@@ -25,6 +25,9 @@ class EmployeeListSerializer(serializers.ModelSerializer):
         required=False
     )
     total_shifts_count = serializers.IntegerField(read_only=True)
+
+    created_at = serializers.DateTimeField(read_only=True)
+
     is_staff_admin = serializers.BooleanField()
     can_manage_shifts = serializers.BooleanField()
     can_manage_blog = serializers.BooleanField()
@@ -45,6 +48,7 @@ class EmployeeListSerializer(serializers.ModelSerializer):
                   'total_shifts_count',
                   'criminal_record',
                   'is_staff_admin',
+                  'created_at',
                   'can_manage_shifts',
                   'can_manage_blog',
                   'can_approve_registrations',

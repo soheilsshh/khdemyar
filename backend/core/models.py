@@ -85,8 +85,10 @@ class Employee(models.Model):
         ],
         default='pending'
     )
-    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_employees')  # Added: تأیید شده توسط (ForeignKey به User، از HTML)
-    
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_employees')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="زمان بروزرسانی")
+
     is_staff_admin = models.BooleanField(default=False, verbose_name="دسترسی به پنل مدیریت")
     can_manage_shifts = models.BooleanField(default=False, verbose_name="مدیریت شیفت‌ها")
     can_manage_blog = models.BooleanField(default=False, verbose_name="مدیریت وبلاگ")
