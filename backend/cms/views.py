@@ -3,8 +3,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
 
 from django.utils import timezone
+from django.db import transaction
 
 from drf_spectacular.utils import extend_schema
 
@@ -210,3 +212,378 @@ class VisitStatsView(APIView):
         
         serializer = VisitStatsSerializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FeedbackViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet برای مدیریت بازخوردهای کاربران
+    
+    قابلیت‌ها:
+    - create: برای همه کاربران (AllowAny) - ثبت بازخورد جدید
+    - list, retrieve, update, partial_update, destroy: فقط برای ادمین‌ها (IsActiveAdmin)
+    
+    ساختار:
+    - استفاده از ModelViewSet برای CRUD کامل
+    - دو سریالایزر: FeedbackCreateSerializer برای create، FeedbackSerializer برای سایر عملیات
+    - مرتب‌سازی پیش‌فرض بر اساس created_at نزولی
+    """
+    queryset = Feedback.objects.all().order_by('-created_at')
+    serializer_class = FeedbackSerializer
+    
+    def get_permissions(self):
+        """
+        تعیین permission‌ها بر اساس action
+        - create: AllowAny (همه می‌توانند بازخورد ثبت کنند)
+        - سایر عملیات: IsAuthenticated + IsActiveAdmin (فقط ادمین‌ها)
+        """
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [IsAuthenticated(), IsActiveAdmin()]
+    
+    def get_serializer_class(self):
+        """
+        انتخاب سریالایزر مناسب بر اساس action
+        - create: FeedbackCreateSerializer (فقط فیلدهای لازم برای ثبت)
+        - سایر عملیات: FeedbackSerializer (همه فیلدها شامل status و is_read)
+        """
+        if self.action == 'create':
+            return FeedbackCreateSerializer
+        return FeedbackSerializer
+    
+    @extend_schema(
+        request=FeedbackCreateSerializer,
+        responses={201: FeedbackCreateSerializer},
+        description="ثبت بازخورد جدید. همه کاربران می‌توانند از این endpoint استفاده کنند.",
+        summary="ثبت بازخورد"
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        ثبت بازخورد جدید
+        همه کاربران می‌توانند بازخورد ثبت کنند (AllowAny)
+        """
+        return super().create(request, *args, **kwargs)
+    
+    @extend_schema(
+        responses={200: FeedbackSerializer(many=True)},
+        description="لیست تمام بازخوردها. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="لیست بازخوردها"
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        لیست تمام بازخوردها
+        فقط برای ادمین‌ها قابل دسترسی است
+        مرتب‌سازی پیش‌فرض: جدیدترین به قدیمی‌ترین
+        """
+        return super().list(request, *args, **kwargs)
+    
+    @extend_schema(
+        responses={200: FeedbackSerializer},
+        description="جزئیات یک بازخورد. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="جزئیات بازخورد"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        نمایش جزئیات یک بازخورد
+        فقط برای ادمین‌ها قابل دسترسی است
+        """
+        return super().retrieve(request, *args, **kwargs)
+    
+    @extend_schema(
+        request=FeedbackSerializer,
+        responses={200: FeedbackSerializer},
+        description="ویرایش کامل بازخورد. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="ویرایش بازخورد"
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        ویرایش کامل بازخورد (PUT)
+        فقط برای ادمین‌ها قابل دسترسی است
+        """
+        return super().update(request, *args, **kwargs)
+    
+    @extend_schema(
+        request=FeedbackSerializer,
+        responses={200: FeedbackSerializer},
+        description="ویرایش جزئی بازخورد (PATCH). فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="ویرایش جزئی بازخورد"
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """
+        ویرایش جزئی بازخورد (PATCH)
+        فقط برای ادمین‌ها قابل دسترسی است
+        برای تغییر status و is_read استفاده می‌شود
+        """
+        return super().partial_update(request, *args, **kwargs)
+    
+    @extend_schema(
+        responses={204: None},
+        description="حذف بازخورد. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="حذف بازخورد"
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        حذف بازخورد
+        فقط برای ادمین‌ها قابل دسترسی است
+        """
+        return super().destroy(request, *args, **kwargs)
+
+
+class ContactInfoView(APIView):
+    """
+    API View برای مدیریت اطلاعات تماس با ما (singleton)
+    
+    قابلیت‌ها:
+    - GET: برای همه کاربران (AllowAny) - نمایش اطلاعات تماس
+    - PATCH/PUT: فقط برای ادمین‌ها (IsAuthenticated + IsActiveAdmin) - ویرایش اطلاعات
+    
+    ساختار:
+    - استفاده از APIView برای کنترل دقیق‌تر (singleton pattern)
+    - استفاده از get_instance() برای اطمینان از وجود رکورد
+    - اگر رکورد وجود نداشت، خودکار ایجاد می‌شود
+    - GET: AllowAny (permission_classes)
+    - PUT/PATCH: بررسی دستی permission در متد
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    @extend_schema(
+        responses={200: ContactInfoSerializer},
+        description="نمایش اطلاعات تماس با ما. همه کاربران می‌توانند از این endpoint استفاده کنند.",
+        summary="نمایش اطلاعات تماس"
+    )
+    def get(self, request):
+        """
+        نمایش اطلاعات تماس با ما
+        برای همه کاربران قابل دسترسی است (AllowAny)
+        اگر رکورد وجود نداشت، خودکار ایجاد می‌شود
+        """
+        contact_info = ContactInfo.get_instance()
+        serializer = ContactInfoSerializer(contact_info)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def _check_admin_permission(self, request):
+        """
+        بررسی دسترسی ادمین برای PUT/PATCH
+        بررسی IsAuthenticated و IsActiveAdmin
+        """
+        if not request.user.is_authenticated:
+            return False
+        
+        # بررسی IsActiveAdmin
+        admin_permission = IsActiveAdmin()
+        return admin_permission.has_permission(request, self)
+    
+    @extend_schema(
+        request=ContactInfoSerializer,
+        responses={200: ContactInfoSerializer, 403: 'Forbidden'},
+        description="ویرایش کامل اطلاعات تماس (PUT). فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="ویرایش کامل اطلاعات تماس"
+    )
+    def put(self, request):
+        """
+        ویرایش کامل اطلاعات تماس (PUT)
+        فقط برای ادمین‌ها قابل دسترسی است
+        """
+        # بررسی دسترسی ادمین
+        if not self._check_admin_permission(request):
+            return Response(
+                {'detail': 'شما مجاز به ویرایش اطلاعات تماس نیستید.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        contact_info = ContactInfo.get_instance()
+        serializer = ContactInfoSerializer(contact_info, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @extend_schema(
+        request=ContactInfoSerializer,
+        responses={200: ContactInfoSerializer, 403: 'Forbidden'},
+        description="ویرایش جزئی اطلاعات تماس (PATCH). فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="ویرایش جزئی اطلاعات تماس"
+    )
+    def patch(self, request):
+        """
+        ویرایش جزئی اطلاعات تماس (PATCH)
+        فقط برای ادمین‌ها قابل دسترسی است
+        """
+        # بررسی دسترسی ادمین
+        if not self._check_admin_permission(request):
+            return Response(
+                {'detail': 'شما مجاز به ویرایش اطلاعات تماس نیستید.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        contact_info = ContactInfo.get_instance()
+        serializer = ContactInfoSerializer(contact_info, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubtitleViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet برای مدیریت زیرنویس‌های صفحه اصلی
+    
+    قابلیت‌ها:
+    - CRUD کامل: create, list, retrieve, update, partial_update, destroy
+    - تمام عملیات فقط برای ادمین‌ها (IsAuthenticated + IsActiveAdmin + CanManageBlog)
+    - action سفارشی: toggle-active (فعال/غیرفعال کردن زیرنویس)
+    
+    منطق "فقط یکی active":
+    - هنگام create/update/partial_update: اگر is_active=True باشد، بقیه خودکار غیرفعال می‌شوند
+    - در action toggle-active: رکورد انتخاب شده فعال می‌شود و بقیه غیرفعال می‌شوند
+    - استفاده از transaction برای اطمینان از atomic بودن عملیات
+    
+    ساختار:
+    - استفاده از ModelViewSet برای CRUD کامل
+    - استفاده از CanManageBlog برای permission (مثل NewsViewSet)
+    - مرتب‌سازی پیش‌فرض بر اساس created_at نزولی
+    """
+    queryset = Subtitle.objects.all().order_by('-created_at')
+    serializer_class = SubtitleSerializer
+    
+    def get_permissions(self):
+        """
+        تعیین permission‌ها برای تمام عملیات
+        تمام عملیات نیاز به IsAuthenticated + IsActiveAdmin + CanManageBlog دارند
+        (مثل NewsViewSet)
+        """
+        return [IsAuthenticated(), IsActiveAdmin(), CanManageBlog()]
+    
+    def _deactivate_others(self, current_instance=None):
+        """
+        متد helper برای غیرفعال کردن تمام زیرنویس‌های دیگر
+        در صورت وجود current_instance، آن را از لیست استثنا می‌کند
+        
+        استفاده از transaction برای اطمینان از atomic بودن عملیات
+        """
+        with transaction.atomic():
+            queryset = Subtitle.objects.filter(is_active=True)
+            if current_instance:
+                queryset = queryset.exclude(pk=current_instance.pk)
+            queryset.update(is_active=False)
+    
+    def perform_create(self, serializer):
+        """
+        override perform_create برای مدیریت منطق "فقط یکی active"
+        اگر is_active=True باشد، بقیه را غیرفعال می‌کنیم
+        """
+        instance = serializer.save()
+        if instance.is_active:
+            self._deactivate_others(current_instance=instance)
+    
+    def perform_update(self, serializer):
+        """
+        override perform_update برای مدیریت منطق "فقط یکی active"
+        اگر is_active=True باشد، بقیه را غیرفعال می‌کنیم
+        """
+        instance = serializer.save()
+        if instance.is_active:
+            self._deactivate_others(current_instance=instance)
+    
+    @extend_schema(
+        request=None,
+        responses={200: SubtitleSerializer},
+        description="فعال/غیرفعال کردن زیرنویس. زیرنویس انتخاب شده فعال می‌شود و بقیه غیرفعال می‌شوند.",
+        summary="فعال/غیرفعال کردن زیرنویس"
+    )
+    @action(detail=True, methods=['post'], url_path='toggle-active')
+    def toggle_active(self, request, pk=None):
+        """
+        Action سفارشی برای فعال/غیرفعال کردن زیرنویس
+        
+        منطق:
+        - زیرنویس انتخاب شده فعال می‌شود (is_active=True)
+        - تمام زیرنویس‌های دیگر خودکار غیرفعال می‌شوند
+        - استفاده از transaction برای اطمینان از atomic بودن عملیات
+        
+        اگر زیرنویس قبلاً فعال بود، همچنان فعال می‌ماند (toggle نیست، بلکه force activate است)
+        این منطق برای UX بهتر است: کاربر می‌خواهد زیرنویس خاصی را فعال کند
+        """
+        subtitle = self.get_object()
+        
+        with transaction.atomic():
+            # غیرفعال کردن تمام زیرنویس‌های دیگر
+            self._deactivate_others(current_instance=subtitle)
+            # فعال کردن زیرنویس انتخاب شده
+            subtitle.is_active = True
+            subtitle.save(update_fields=['is_active'])
+        
+        serializer = self.get_serializer(subtitle)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @extend_schema(
+        request=SubtitleSerializer,
+        responses={201: SubtitleSerializer},
+        description="ایجاد زیرنویس جدید. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="ایجاد زیرنویس"
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        ایجاد زیرنویس جدید
+        اگر is_active=True باشد، بقیه خودکار غیرفعال می‌شوند
+        """
+        return super().create(request, *args, **kwargs)
+    
+    @extend_schema(
+        responses={200: SubtitleSerializer(many=True)},
+        description="لیست تمام زیرنویس‌ها. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="لیست زیرنویس‌ها"
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        لیست تمام زیرنویس‌ها
+        مرتب‌سازی پیش‌فرض: جدیدترین به قدیمی‌ترین
+        """
+        return super().list(request, *args, **kwargs)
+    
+    @extend_schema(
+        responses={200: SubtitleSerializer},
+        description="جزئیات یک زیرنویس. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="جزئیات زیرنویس"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        نمایش جزئیات یک زیرنویس
+        """
+        return super().retrieve(request, *args, **kwargs)
+    
+    @extend_schema(
+        request=SubtitleSerializer,
+        responses={200: SubtitleSerializer},
+        description="ویرایش کامل زیرنویس (PUT). اگر is_active=True باشد، بقیه غیرفعال می‌شوند.",
+        summary="ویرایش کامل زیرنویس"
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        ویرایش کامل زیرنویس (PUT)
+        اگر is_active=True باشد، بقیه خودکار غیرفعال می‌شوند
+        """
+        return super().update(request, *args, **kwargs)
+    
+    @extend_schema(
+        request=SubtitleSerializer,
+        responses={200: SubtitleSerializer},
+        description="ویرایش جزئی زیرنویس (PATCH). اگر is_active=True باشد، بقیه غیرفعال می‌شوند.",
+        summary="ویرایش جزئی زیرنویس"
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """
+        ویرایش جزئی زیرنویس (PATCH)
+        اگر is_active=True باشد، بقیه خودکار غیرفعال می‌شوند
+        """
+        return super().partial_update(request, *args, **kwargs)
+    
+    @extend_schema(
+        responses={204: None},
+        description="حذف زیرنویس. فقط برای ادمین‌ها قابل دسترسی است.",
+        summary="حذف زیرنویس"
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        حذف زیرنویس
+        """
+        return super().destroy(request, *args, **kwargs)
