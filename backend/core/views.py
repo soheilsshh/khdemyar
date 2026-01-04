@@ -36,6 +36,8 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['list', 'me']:
             return EmployeeListSerializer
+        if self.action == 'change_password':
+            return ChangePasswordSerializer
         return EmployeeSerializer
 
     def get_queryset(self):
@@ -70,6 +72,21 @@ class EmployeeViewSet(viewsets.ModelViewSet):
 
         serializer = EmployeeListSerializer(active_employees, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='me/change-password')
+    def change_password(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            if not user.check_password(serializer.data.get('old_password')):
+                return Response({"old_password": ["پسورد فعلی اشتباه است."]}, status=status.HTTP_400_BAD_REQUEST)
+                
+            user.set_password(serializer.data.get('new_password'))
+            user.save()
+            return Response({"message": "پسورد با موفقیت تغییر کرد."}, status=status.HTTP_200_OK)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ShiftViewSet(viewsets.ModelViewSet):
     queryset = Shift.objects.all()

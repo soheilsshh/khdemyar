@@ -280,3 +280,8 @@ class AdminUserSerializer(serializers.ModelSerializer):
                   'date_joined'
                   ]
         read_only_fields = ['date_joined']
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
