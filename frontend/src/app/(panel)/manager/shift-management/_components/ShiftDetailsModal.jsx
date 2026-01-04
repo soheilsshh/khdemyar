@@ -1,11 +1,25 @@
 "use client";
 import React, { useState } from 'react';
-import { FaTimes, FaCheck, FaTimesCircle, FaUsers, FaStar, FaEdit } from 'react-icons/fa';
+import { FaTimes, FaCheck, FaTimesCircle, FaUsers, FaStar, FaEdit, FaSearch } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
 const ShiftDetailsModal = ({ shift, onClose }) => {
-    const [users, setUsers] = useState(shift.users || []);
+    const [users, setUsers] = useState(shift.users || [
+        { id: 1, name: 'احمد رضایی', rating: true },
+        { id: 2, name: 'مریم احمدی', rating: false },
+        { id: 3, name: 'علی محمدی', rating: null },
+        { id: 4, name: 'فاطمه کرمی', rating: true },
+        { id: 5, name: 'حسن ابراهیمی', rating: true },
+        { id: 6, name: 'زهرا حسینی', rating: false },
+        { id: 7, name: 'محمد نوری', rating: null },
+        { id: 8, name: 'سارا زمانی', rating: true },
+        { id: 9, name: 'رضا شریفی', rating: false },
+        { id: 10, name: 'نازنین علوی', rating: null },
+        { id: 11, name: 'امیر پاکدل', rating: true },
+        { id: 12, name: 'ملیکا رضوانی', rating: true }
+    ]);
     const [isEditing, setIsEditing] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleUserRatingChange = (userId, rating) => {
         setUsers(prev => prev.map(user => 
@@ -40,20 +54,30 @@ const ShiftDetailsModal = ({ shift, onClose }) => {
         const correct = users.filter(u => u.rating === true).length;
         const incorrect = users.filter(u => u.rating === false).length;
         const pending = users.filter(u => u.rating === null).length;
-        
+
         return { total, correct, incorrect, pending };
     };
 
+    const getFilteredUsers = () => {
+        if (!searchTerm.trim()) {
+            return users;
+        }
+        return users.filter(user =>
+            user.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    };
+
     const stats = getRatingStats();
+    const filteredUsers = getFilteredUsers();
 
     return (
         <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className='absolute z-5 inset-0 bg-green-300/20 backdrop-blur-sm'>
 
             </div>
-            <div className="bg-white z-10 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white z-10 rounded-lg max-w-7xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-200">
+                <div className="flex sticky z-50 top-0 bg-white justify-between items-center p-6 border-b border-gray-200">
                     <h2 className="text-2xl font-bold text-gray-800">
                         جزئیات شیفت {shift.date}
                     </h2>
@@ -176,6 +200,27 @@ const ShiftDetailsModal = ({ shift, onClose }) => {
                             </div>
                         </div>
 
+                        {/* Search Box */}
+                        <div className="mb-6 ">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="جستجو بر اساس نام کاربر..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                />
+                                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                    <FaSearch size={18} />
+                                </div>
+                            </div>
+                            {searchTerm && (
+                                <div className="mt-2 text-sm text-gray-600">
+                                    {filteredUsers.length} نتیجه برای "{searchTerm}"
+                                </div>
+                            )}
+                        </div>
+
                         {/* Bulk Actions */}
                         {isEditing && (
                             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -201,8 +246,8 @@ const ShiftDetailsModal = ({ shift, onClose }) => {
 
                         {/* Users List */}
                         <div className="space-y-3">
-                            {users.length > 0 ? (
-                                users.map((user) => (
+                            {filteredUsers.length > 0 ? (
+                                filteredUsers.map((user) => (
                                     <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -265,7 +310,7 @@ const ShiftDetailsModal = ({ shift, onClose }) => {
                             ) : (
                                 <div className="text-center py-8 text-gray-500">
                                     <FaUsers size={48} className="mx-auto mb-4 opacity-50" />
-                                    <p>هیچ کاربری برای این شیفت ثبت نشده است</p>
+                                    <p>{searchTerm ? `هیچ کاربری با نام "${searchTerm}" یافت نشد` : 'هیچ کاربری برای این شیفت ثبت نشده است'}</p>
                                 </div>
                             )}
                         </div>

@@ -3,7 +3,8 @@ import React from 'react';
 import { FaUsers, FaCalendarCheck, FaEye, FaChartLine } from 'react-icons/fa';
 import StatCard from './StatCard';
 import VisitChart from './VisitChart';
-import TopUsers from './TopUsers';
+import TopMaleUsers from './TopMaleUsers';
+import TopFemaleUsers from './TopFemaleUsers';
 
 const Dashboard = ({ title = "داشبورد مدیریت" }) => {
     // Sample statistics data
@@ -60,38 +61,19 @@ const Dashboard = ({ title = "داشبورد مدیریت" }) => {
             </div>
 
             {/* Charts and Top Users */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Visit Chart - Takes 2 columns on large screens */}
-                <div className="lg:col-span-2">
+            <div className="space-y-6">
+                {/* Visit Chart - Takes full width */}
+                <div className="w-full">
                     <VisitChart />
                 </div>
-                    
-                {/* Top Users - Takes 1 column on large screens */}
-                <div className="lg:col-span-1">
-                    <TopUsers />
+
+                {/* Top Male and Female Users */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <TopMaleUsers />
+                    <TopFemaleUsers />
                 </div>
             </div>
 
-            {/* Additional Info Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-r from-green-400 to-blue-500 rounded-xl p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">وضعیت سیستم</h3>
-                    <p className="text-green-100">همه سرویس‌ها به درستی کار می‌کنند</p>
-                    <div className="mt-4 flex items-center">
-                        <div className="w-3 h-3 bg-green-300 rounded-full mr-2"></div>
-                        <span className="text-sm">آنلاین</span>
-                    </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-purple-400 to-pink-500 rounded-xl p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">آخرین فعالیت</h3>
-                    <p className="text-purple-100">3 شیفت جدید امروز ثبت شده</p>
-                    <div className="mt-4 flex items-center">
-                        <div className="w-3 h-3 bg-purple-300 rounded-full mr-2"></div>
-                        <span className="text-sm">فعال</span>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
