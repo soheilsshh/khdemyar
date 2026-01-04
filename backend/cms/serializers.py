@@ -109,7 +109,7 @@ class VisitCreateSerializer(serializers.ModelSerializer):
         """
         ایجاد Visit با دریافت IP و user_agent از request
         Rate limiting: اگر بازدید مشابه در 60 ثانیه گذشته وجود داشته باشد، 
-        به صورت silent fail (None برمی‌گرداند)
+        instance موجود را برمی‌گرداند (silent fail)
         """
         request = self.context.get('request')
         ip_address = self._get_client_ip(request)
@@ -123,11 +123,12 @@ class VisitCreateSerializer(serializers.ModelSerializer):
             ip_address=ip_address,
             path=path,
             created_at__gte=timezone.now() - timedelta(seconds=60)
-        ).exists()
+        ).first()
 
         if recent_visit:
-            # Silent fail: در صورت تکراری بودن، None برمی‌گردانیم
-            return None
+            # Silent fail: در صورت تکراری بودن، instance موجود را برمی‌گردانیم
+            # این کار باعث می‌شود که DRF خطا ندهد و منطق silent fail حفظ شود
+            return recent_visit
 
         # ایجاد Visit جدید
         visit = Visit.objects.create(
