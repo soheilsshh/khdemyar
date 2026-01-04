@@ -1,4 +1,6 @@
 from django.db import models
+from core.models import User
+from django.utils import timezone
 
 
 class News(models.Model):
@@ -36,3 +38,17 @@ class AboutUs(models.Model):
         """Get or create the single AboutUs instance"""
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class Visit(models.Model):
+    ip_address = models.CharField(max_length=45, blank=True, null=True)  # IP بازدیدکننده (اختیاری)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # اگر کاربر لاگین کرده
+    path = models.CharField(max_length=255)  # مسیر صفحه بازدیدشده (مثل '/news/')
+    created_at = models.DateTimeField(default=timezone.now)  # زمان بازدید
+
+    class Meta:
+        verbose_name = "بازدید"
+        verbose_name_plural = "بازدیدها"
+
+    def __str__(self):
+        return f"بازدید از {self.path} در {self.created_at}"

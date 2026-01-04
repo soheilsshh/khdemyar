@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import News, AboutUs
+from .models import * 
 
 
 @admin.register(News)
@@ -23,3 +23,5 @@ class AboutUsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Prevent deleting the AboutUs instance"""
         return False
+
+admin.site.register(Visit)
