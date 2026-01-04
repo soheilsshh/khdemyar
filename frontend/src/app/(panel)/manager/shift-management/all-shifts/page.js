@@ -24,6 +24,8 @@ function Page() {
       woman: 10,
       status: 0,
       suitable: "جشن فارغ‌التحصیلی دانشگاه",
+      isCompleted:true,
+      isRated: true
     },
     {
       date: "1404/05/02",

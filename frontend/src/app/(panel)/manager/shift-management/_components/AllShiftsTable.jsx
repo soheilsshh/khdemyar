@@ -5,13 +5,13 @@ import { FaEye, FaCheck, FaTimes, FaStar, FaUsers } from 'react-icons/fa';
 import Pagination from '@/components/Pagination';
 import ShiftDetailsModal from './ShiftDetailsModal';
 
-const AllShiftsTable = ({ 
-  title = "", 
-  requests, 
-  activeFilters = [], 
-  activeRatingFilters = [], 
-  selectedDate, 
-  activeDate 
+const AllShiftsTable = ({
+    title = "",
+    requests,
+    activeFilters = [],
+    activeRatingFilters = [],
+    selectedDate,
+    activeDate
 }) => {
     const router = useRouter();
     const [currentPage, setCurrentPage] = useState(1);
@@ -77,7 +77,7 @@ const AllShiftsTable = ({
     return (
         <div className="p-2 md:p-6 md:pt-0">
             <h1 className="text-2xl font-bold mb-4">{title}</h1>
-            
+
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto border border-gray-400/70 rounded-lg shadow">
                 <table className="min-w-full rounded-lg overflow-hidden">
@@ -136,15 +136,12 @@ const AllShiftsTable = ({
                                                 </span>
                                             )}
                                         </div>
-                                        
+
                                         {/* Rating Status */}
                                         {request.isCompleted && (
                                             <div className="flex items-center gap-1">
                                                 {request.isRated ? (
-                                                    <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full flex items-center gap-1">
-                                                        <FaStar size={10} />
-                                                        نمره‌دهی شده
-                                                    </span>
+                                                    null
                                                 ) : (
                                                     <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
                                                         نیاز به نمره‌دهی
@@ -156,17 +153,7 @@ const AllShiftsTable = ({
                                 </td>
                                 <td className="p-4 border border-r-2 border-gray-400/70 text-center w-32">
                                     <div className="flex justify-center items-center gap-2">
-                                        {/* Status indicators */}
-                                        {request.status === 0 && (
-                                            <div className="w-3 h-3 bg-red-500 rounded-full" title="غیرفعال" />
-                                        )}
-                                        {request.status === 1 && (
-                                            <div className="w-3 h-3 bg-green-500 rounded-full" title="فعال" />
-                                        )}
-                                        {request.status === 2 && (
-                                            <div className="w-3 h-3 bg-yellow-500 rounded-full" title="در انتظار" />
-                                        )}
-                                        
+
                                         {/* View details button */}
                                         <button
                                             onClick={() => handleViewDetails(request, index)}
@@ -191,7 +178,7 @@ const AllShiftsTable = ({
                             <div>
                                 <h3 className="font-bold text-lg">شیفت {request.date}</h3>
                                 <p className="text-sm text-gray-600">#{startIndex + index + 1}</p>
-                                
+
                                 {/* Status badges for mobile */}
                                 <div className="flex flex-wrap gap-1 mt-2">
                                     {request.isCompleted ? (
@@ -203,7 +190,7 @@ const AllShiftsTable = ({
                                             در حال انجام
                                         </span>
                                     )}
-                                    
+
                                     {request.isCompleted && (
                                         request.isRated ? (
                                             <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full flex items-center gap-1">
@@ -219,17 +206,7 @@ const AllShiftsTable = ({
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
-                                {/* Status indicators */}
-                                {request.status === 0 && (
-                                    <div className="w-3 h-3 bg-red-500 rounded-full" title="غیرفعال" />
-                                )}
-                                {request.status === 1 && (
-                                    <div className="w-3 h-3 bg-green-500 rounded-full" title="فعال" />
-                                )}
-                                {request.status === 2 && (
-                                    <div className="w-3 h-3 bg-yellow-500 rounded-full" title="در انتظار" />
-                                )}
-                                
+
                                 <button
                                     onClick={() => handleViewDetails(request, index)}
                                     className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"

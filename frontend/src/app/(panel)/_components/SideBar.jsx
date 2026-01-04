@@ -126,9 +126,9 @@ function SideBar({ items }) {
       </AnimatePresence>
 
       {/* Desktop Sidebar (Unchanged) */}
-      <div className="h-screen fixed right-0 top-0 w-60 hidden lg:flex flex-col gap-5 bg-dMain text-black p-4">
+      <div className="h-screen fixed right-0 top-0 w-60 hidden lg:flex flex-col gap-5 bg-dMain text-black py-4">
         {/* User */}
-        <div className="flex justify-start items-center gap-5 translate-x-2">
+        <div className="flex justify-start items-center gap-5 translate-x-2 px-4">
           <CgProfile size={40} />
           <div className="line-clamp-1 flex-1">
             شهاب صفری
@@ -136,7 +136,7 @@ function SideBar({ items }) {
         </div>
 
         {/* Menu Items */}
-        <div className="flex flex-col gap-1">
+        <div className="flex  flex-col px-1 ">
           {items.map((item, index) => {
             const isMenuActive = isActiveMain(item.section);
             console.log("item.section", item.section)
@@ -145,48 +145,55 @@ function SideBar({ items }) {
               <React.Fragment key={index}>
                 <div
                   onClick={() => router.push(item.link)}
-                  className="cursor-pointer w-full py-2 flex justify-start gap-3 items-center"
+                  className={` ${isMenuActive ? (item.subMenu ? "bg-white rounded-t-3xl" : "bg-white rounded-3xl") : ""} cursor-pointer px-4 w-full py-2 flex justify-start gap-3 items-center`}
                 >
                   <span>{item.icon}</span>
                   <span>{item.name}</span>
                 </div>
 
+
+
                 {/* Animated Submenu */}
                 <AnimatePresence initial={false}>
                   {isMenuActive && item.subMenu && (
-                    <motion.div
-                      key="submenu"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="flex flex-col text-xs border-r -translate-x-2  overflow-hidden"
-                    >
-                      {item.subMenu.map((sub, subIndex) => {
-                        const isActive = checkMenu(sub.link);
-                        return (
-                          <div
-                            key={subIndex}
-                            onClick={() => router.push(sub.link)}
-                            className="relative cursor-pointer w-full py-2 flex justify-start gap-3 items-center pr-6"
-                          >
-                            {isActive && (
-                              <motion.div
-                                layoutId="activeSubmenuIndicator"
-                                className="absolute right-0 top-0 h-full w-1.5 bg-white z-100"
-                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                              />
-                            )}
-                            <span className="z-10">{sub.name}</span>
-                          </div>
-                        );
-                      })}
-                    </motion.div>
+                    <>
+                      <motion.div
+                        key="submenu"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="flex flex-col relative text-xs  overflow-hidden bg-white/50 py-2 rounded-b-3xl "
+                      >
+                        {item.subMenu.map((sub, subIndex) => {
+                          const isActive = checkMenu(sub.link);
+                          return (
+                            <div
+                              key={subIndex}
+                              onClick={() => router.push(sub.link)}
+                              className={`relative cursor-pointer w-full py-2 flex justify-start border-r mr-2 gap-3 items-center pr-6`}
+                            >
+                              {isActive && (
+                                <motion.div
+                                  layoutId="activeSubmenuIndicator"
+                                  className="absolute right-0 top-0 h-full w-1.5 bg-white z-100 "
+                                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                />
+                              )}
+                              <span className="z-10">{sub.name}</span>
+                            </div>
+                          );
+                        })}
+
+                      </motion.div>
+                    </>
                   )}
                 </AnimatePresence>
               </React.Fragment>
             );
           })}
+
+
         </div>
       </div>
     </>

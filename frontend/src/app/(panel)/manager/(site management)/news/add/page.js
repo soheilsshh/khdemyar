@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import AddImagesDynamic from "@/components/AddImageUploader";
 import {
   setTitle,
   setDate,
@@ -9,10 +10,8 @@ import {
   setImage,
   resetNews,
 } from "@/redux/features/newsSlice";
-
 import InputTypeOne from "@/components/InputTypeOne";
 import TextAreaTypeOne from "@/components/TextAreaTypeOne";
-import ImageUploader from "@/components/ImageUploader";
 
 function AddNews() {
   const dispatch = useDispatch();
@@ -85,8 +84,8 @@ function AddNews() {
           <p className="text-red-500 text-sm">متن اجباری است</p>
         )}
 
-        <div className="my-5">
-          <ImageUploader
+       <div>
+          <AddImagesDynamic
             value={news.image}
             onChange={(file) => dispatch(setImage(file))}
           />
