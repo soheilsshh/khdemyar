@@ -27,7 +27,7 @@ class RegistrationRequestListSerializer(serializers.ModelSerializer):
             'created_at',
         ]
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj)->str:
         return f"{obj.first_name} {obj.last_name}".strip()
 
 
@@ -40,7 +40,7 @@ class EmployeeRegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     phone_number = serializers.CharField(write_only=True, max_length=20)
-    profile_image = serializers.ImageField(required=False, allow_null=True)
+    profile_image = serializers.ImageField(required=False, allow_null=True, use_url=False)
 
     class Meta:
         model = Employee

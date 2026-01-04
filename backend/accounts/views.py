@@ -2,6 +2,8 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from drf_spectacular.utils import extend_schema
 from django.contrib.auth import get_user_model
 from django.conf import settings
 import requests
@@ -60,7 +62,13 @@ class AuthViewSet(viewsets.ModelViewSet):
             return OTPVerifySerializer
         return UserSerializer
 
-    @action(detail=False, methods=['post'])
+
+    @extend_schema(
+    request={
+        'multipart/form-data': EmployeeRegisterSerializer,
+    },
+    )
+    @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])
     def register(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
