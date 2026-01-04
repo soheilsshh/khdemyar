@@ -326,21 +326,60 @@ class ShiftSerializer(serializers.ModelSerializer):
 
 
 class ShiftRequestSerializer(serializers.ModelSerializer):
-    employee_name = serializers.CharField(source='employee.__str__', read_only=True)
-    employee_national_id = serializers.CharField(source='employee.national_id', read_only=True)
     requested_at = serializers.DateTimeField(format='%Y-%m-%d %H:%M', read_only=True)
+    employee_info = serializers.SerializerMethodField()
+
+    def get_employee_info(self, obj):
+        employee = obj.employee
+        return {
+            'id': employee.id,
+            'first_name':employee.first_name,
+            'last_name':employee.last_name,
+            'phone': employee.phone,
+            'criminal_record': employee.criminal_record
+        }
 
     class Meta:
         model = ShiftRequest
         fields = [
             'id',
-            'employee',
-            'employee_name',
-            'employee_national_id',
-            'status',
+            'employee_info',
+            'status',                 
             'requested_at',
         ]
+        read_only_fields = [
+            'id', 'employee', 'employee_id', 'employee_name',
+            'employee_national_id', 'requested_at'
+        ]
 
+class ShiftDetailSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    current_males = serializers.IntegerField(source='current_males_count', read_only=True)
+    current_females = serializers.IntegerField(source='current_females_count', read_only=True)
+    
+    requests = ShiftRequestSerializer(many=True, read_only=True)  
+
+    class Meta:
+        model = Shift
+        fields = [
+            'id',
+            'start_time',
+            'end_time',
+            'occasion',
+            'min_emp',
+            'max_emp',
+            'max_males',
+            'max_females',
+            'current_males',
+            'current_females',
+            'is_active',
+            'created_by',
+            'created_by_name',
+            'created_at',
+            'description',
+            'requests',  # فیلد جدید nested
+        ]
+        read_only_fields = ['created_by', 'created_by_name', 'created_at', 'current_males', 'current_females', 'requests']
     
     
 class AdminUserSerializer(serializers.ModelSerializer):

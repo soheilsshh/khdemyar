@@ -108,6 +108,8 @@ class ShiftViewSet(viewsets.ModelViewSet):
             return ShiftListSerializer        
         if self.action in ['get_requests' , 'request_shift']:
             return ShiftRequestSerializer
+        if self.action == 'retrieve':  
+            return ShiftDetailSerializer
         return ShiftSerializer
     
     def get_permissions(self):
