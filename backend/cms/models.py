@@ -41,14 +41,31 @@ class AboutUs(models.Model):
 
 
 class Visit(models.Model):
-    ip_address = models.CharField(max_length=45, blank=True, null=True)  # IP بازدیدکننده (اختیاری)
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # اگر کاربر لاگین کرده
-    path = models.CharField(max_length=255)  # مسیر صفحه بازدیدشده (مثل '/news/')
-    created_at = models.DateTimeField(default=timezone.now)  # زمان بازدید
+    """
+    مدل ثبت بازدید صفحات توسط کاربران
+    استفاده برای page view tracking از سمت فرانت‌اند
+    """
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="آدرس IP")
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        verbose_name="کاربر"
+    )
+    path = models.CharField(max_length=255, verbose_name="مسیر صفحه")
+    user_agent = models.TextField(null=True, blank=True, verbose_name="User Agent")
+    created_at = models.DateTimeField(default=timezone.now, verbose_name="زمان بازدید")
 
     class Meta:
         verbose_name = "بازدید"
         verbose_name_plural = "بازدیدها"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['created_at']),
+            models.Index(fields=['ip_address', 'created_at']),
+            models.Index(fields=['path', 'created_at']),
+        ]
 
     def __str__(self):
         return f"بازدید از {self.path} در {self.created_at}"

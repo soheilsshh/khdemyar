@@ -24,4 +24,25 @@ class AboutUsAdmin(admin.ModelAdmin):
         """Prevent deleting the AboutUs instance"""
         return False
 
-admin.site.register(Visit)
+@admin.register(Visit)
+class VisitAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Visit model
+    نمایش بازدیدهای صفحات
+    """
+    list_display = ['path', 'ip_address', 'user', 'created_at']
+    list_filter = ['created_at', 'path']
+    search_fields = ['path', 'ip_address', 'user__username']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
+    ordering = ['-created_at']
+    
+    # محدود کردن نمایش فیلدها در detail view
+    fields = ['path', 'ip_address', 'user', 'user_agent', 'created_at']
+    
+    def has_add_permission(self, request):
+        """
+        غیرفعال کردن امکان افزودن دستی Visit
+        Visitها فقط از طریق API ثبت می‌شوند
+        """
+        return False
