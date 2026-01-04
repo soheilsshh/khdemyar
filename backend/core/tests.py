@@ -16,7 +16,8 @@ class TestEmployeeManagement(APITestCase):
     def setUp(self):
         # Create admin user
         self.admin = User.objects.create_user(
-            phone='09129876543',
+            username='admin',
+            phone_number='09129876543',
             password='adminpass123',
             first_name='Admin',
             last_name='User'
@@ -33,7 +34,8 @@ class TestEmployeeManagement(APITestCase):
 
         # Create regular user
         self.regular_user = User.objects.create_user(
-            phone='09123456789',
+            username='regularuser',
+            phone_number='09123456789',
             password='userpass123',
             first_name='Regular',
             last_name='User'
@@ -130,7 +132,8 @@ class TestShiftManagement(APITestCase):
     def setUp(self):
         # Create admin user
         self.admin = User.objects.create_user(
-            phone='09129876543',
+            username='admin',
+            phone_number='09129876543',
             password='adminpass123'
         )
         self.admin_employee = Employee.objects.create(
@@ -146,7 +149,8 @@ class TestShiftManagement(APITestCase):
 
         # Create regular employee
         self.employee = User.objects.create_user(
-            phone='09123456789',
+            username='employee',
+            phone_number='09123456789',
             password='userpass123'
         )
         self.employee_profile = Employee.objects.create(

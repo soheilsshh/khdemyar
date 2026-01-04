@@ -16,7 +16,8 @@ class TestNewsManagement(APITestCase):
     def setUp(self):
         # Create admin user
         self.admin = User.objects.create_user(
-            phone='09129876543',
+            username='admin',
+            phone_number='09129876543',
             password='adminpass123'
         )
         from core.models import Employee
@@ -457,7 +458,8 @@ class TestSubtitleManagement(APITestCase):
     def setUp(self):
         # Create admin user
         self.admin = User.objects.create_user(
-            phone='09129876543',
+            username='admin',
+            phone_number='09129876543',
             password='adminpass123'
         )
         from core.models import Employee
