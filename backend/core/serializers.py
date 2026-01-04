@@ -431,3 +431,107 @@ class AdminUserSerializer(serializers.ModelSerializer):
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+
+class AdminListSerializer(serializers.ModelSerializer):
+    """
+    Serializer برای لیست و جزئیات ادمین‌ها
+    
+    ویژگی‌ها:
+    - بدون nested serializer (همه فیلدها مستقیم از مدل Employee)
+    - فقط فیلدهای مورد نیاز برای نمایش لیست ادمین‌ها
+    - شامل تمام فیلدهای دسترسی (can_...)
+    
+    استفاده:
+    - GET /api/core/admin/ (list)
+    - GET /api/core/admin/{id}/ (retrieve)
+    """
+    class Meta:
+        model = Employee
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'phone',
+            'national_id',
+            'can_manage_shifts',
+            'can_manage_blog',
+            'can_approve_registrations',
+            'can_manage_khadamyaran',
+            'can_manage_site_settings',
+            'can_manage_admins',
+        ]
+        read_only_fields = fields  # همه فیلدها read-only (فقط نمایش)
+
+
+class AdminCreateSerializer(serializers.Serializer):
+    """
+    Serializer برای ایجاد/بروزرسانی ادمین
+    
+    ویژگی‌ها:
+    - employee_id: شناسه کارمند موجود که باید به ادمین تبدیل شود
+    - فیلدهای دسترسی: می‌توانند true/false باشند
+    - Validation: حداقل یک دسترسی باید true باشد
+    - Validation: employee_id باید معتبر باشد
+    
+    استفاده:
+    - POST /api/core/admin/ (create)
+    - PATCH /api/core/admin/{id}/ (update)
+    """
+    employee_id = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(),
+        required=False,  # برای partial_update (update) نیاز نیست
+        help_text="شناسه کارمند موجود که باید به ادمین تبدیل شود (فقط برای create)"
+    )
+    can_manage_shifts = serializers.BooleanField(required=False, default=False)
+    can_manage_blog = serializers.BooleanField(required=False, default=False)
+    can_approve_registrations = serializers.BooleanField(required=False, default=False)
+    can_manage_khadamyaran = serializers.BooleanField(required=False, default=False)
+    can_manage_site_settings = serializers.BooleanField(required=False, default=False)
+    can_manage_admins = serializers.BooleanField(required=False, default=False)
+    
+    def validate(self, attrs):
+        """
+        Validation: 
+        - برای create: employee_id الزامی است و حداقل یک دسترسی باید true باشد
+        - برای update: employee_id نیاز نیست و validation در view انجام می‌شود
+        """
+        # اگر employee_id ارسال شده (create)، بررسی می‌کنیم
+        if 'employee_id' in attrs:
+            employee_id = attrs['employee_id']
+        else:
+            # در update، employee_id نیاز نیست
+            employee_id = None
+        
+        permission_fields = [
+            'can_manage_shifts',
+            'can_manage_blog',
+            'can_approve_registrations',
+            'can_manage_khadamyaran',
+            'can_manage_site_settings',
+            'can_manage_admins',
+        ]
+        
+        # بررسی اینکه حداقل یکی از فیلدهای دسترسی true باشد
+        # فقط برای create (وقتی employee_id وجود دارد) این validation انجام می‌شود
+        # برای update، validation در view انجام می‌شود (با در نظر گرفتن مقادیر فعلی)
+        if employee_id:
+            has_permission = any(
+                attrs.get(field, False) for field in permission_fields
+            )
+            
+            if not has_permission:
+                raise serializers.ValidationError({
+                    'permissions': 'حداقل یکی از دسترسی‌های ادمینی باید فعال باشد.'
+                })
+        
+        return attrs
+    
+    def validate_employee_id(self, value):
+        """
+        Validation: بررسی اینکه employee وجود داشته باشد
+        همچنین بررسی اینکه employee مربوط به سوپرادمین نباشد
+        """
+        if value.user.is_superuser:
+            raise serializers.ValidationError("نمی‌توان سوپرادمین را به ادمین تبدیل کرد.")
+        return value

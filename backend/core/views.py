@@ -8,6 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
+from django.db import transaction
 
 from drf_spectacular.utils import extend_schema
 
@@ -245,55 +246,289 @@ class ShiftViewSet(viewsets.ModelViewSet):
     
     
 class AdminManagementViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.all()   
-    permission_classes = [IsSuperAdmin]
-
-
-    def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
-            return EmployeeListSerializer
-        return EmployeeSerializer   
-
-
+    """
+    ViewSet برای مدیریت ادمین‌های سیستم
+    
+    قابلیت‌ها:
+    - List: نمایش لیست ادمین‌ها (کارمندانی که حداقل یکی از can_... فیلدها true است)
+    - Retrieve: نمایش جزئیات یک ادمین
+    - Create: ایجاد ادمین جدید (تبدیل کارمند به ادمین با تنظیم دسترسی‌ها)
+    - Update/Patch: بروزرسانی دسترسی‌های ادمین
+    - Delete: حذف ادمین (همه دسترسی‌ها false + is_staff=False)
+    
+    Permission:
+    - CanManageAdmins: فقط کاربرانی که can_manage_admins=True دارند (یا سوپرادمین)
+    
+    منطق:
+    - فقط کارمندانی که حداقل یکی از فیلدهای can_... true دارند در لیست نمایش داده می‌شوند
+    - هنگام ایجاد: employee_id + فیلدهای دسترسی ارسال می‌شود
+    - هنگام بروزرسانی: فقط فیلدهای دسترسی قابل تغییر هستند
+    - هنگام حذف: همه دسترسی‌ها false می‌شوند و is_staff=False می‌شود
+    """
+    permission_classes = [CanManageAdmins]
+    
     def get_queryset(self):
-        if self.request.user.is_superuser:
-            return Employee.objects.select_related('user').all()
-        return Employee.objects.none()
-
-
-    @action(detail=True, methods=['post'], url_path='promote')
-    def promote(self, request, pk=None):
-        employee = get_object_or_404(Employee, pk=pk)
-
-        if employee.user.is_superuser:
-            return Response({"error": "سوپرادمین را نمی‌توان ویرایش کرد"}, status=403)
-
-        if employee.is_staff_admin:
-            return Response({"error": "این کاربر قبلاً ادمین است"}, status=400)
-
-
-        employee.is_staff_admin = True
-        employee.user.is_staff = True   
-        employee.user.save()
+        """
+        QuerySet برای لیست ادمین‌ها
+        فقط کارمندانی که حداقل یکی از فیلدهای can_... true دارند
+        مرتب‌سازی: اول بر اساس first_name سپس last_name
+        """
+        queryset = Employee.objects.select_related('user').filter(
+            Q(can_manage_shifts=True) |
+            Q(can_manage_blog=True) |
+            Q(can_approve_registrations=True) |
+            Q(can_manage_khadamyaran=True) |
+            Q(can_manage_site_settings=True) |
+            Q(can_manage_admins=True)
+        ).order_by('first_name', 'last_name')
+        
+        return queryset
+    
+    def get_serializer_class(self):
+        """
+        انتخاب سریالایزر مناسب بر اساس action
+        - list, retrieve: AdminListSerializer (نمایش ساده)
+        - create, update, partial_update: AdminCreateSerializer (ورودی دسترسی‌ها)
+        """
+        if self.action in ['list', 'retrieve']:
+            return AdminListSerializer
+        return AdminCreateSerializer
+    
+    def _has_any_permission(self, employee):
+        """
+        Helper method: بررسی اینکه آیا کارمند حداقل یک دسترسی ادمینی دارد
+        """
+        return any([
+            employee.can_manage_shifts,
+            employee.can_manage_blog,
+            employee.can_approve_registrations,
+            employee.can_manage_khadamyaran,
+            employee.can_manage_site_settings,
+            employee.can_manage_admins,
+        ])
+    
+    def _update_permissions(self, employee, validated_data):
+        """
+        Helper method: بروزرسانی فیلدهای دسترسی کارمند
+        """
+        permission_fields = [
+            'can_manage_shifts',
+            'can_manage_blog',
+            'can_approve_registrations',
+            'can_manage_khadamyaran',
+            'can_manage_site_settings',
+            'can_manage_admins',
+        ]
+        
+        for field in permission_fields:
+            if field in validated_data:
+                setattr(employee, field, validated_data[field])
+        
         employee.save()
-
-        return Response({"message": f"{employee} به ادمین تبدیل شد"}, status=200)
-
-
-    @action(detail=True, methods=['post'], url_path='demote')
-    def demote(self, request, pk=None):
-        employee = get_object_or_404(Employee, pk=pk)
-
-        if employee.user.is_superuser:
-            return Response({"error": "نمی‌توان سوپرادمین را حذف کرد"}, status=403)
-
-        if not employee.is_staff_admin:
-            return Response({"error": "این کاربر ادمین نیست"}, status=400)
-
-        employee.is_staff_admin = False
-        employee.user.is_staff = False
-        employee.user.save()
-        employee.save()
-
-        return Response({"message": f"{employee} از لیست ادمین‌ها حذف شد"}, status=200)
+    
+    @extend_schema(
+        responses={200: AdminListSerializer(many=True)},
+        description="لیست تمام ادمین‌های سیستم (کارمندانی که حداقل یک دسترسی ادمینی دارند)",
+        summary="لیست ادمین‌ها"
+    )
+    def list(self, request, *args, **kwargs):
+        """
+        لیست ادمین‌ها
+        فقط کارمندانی که حداقل یکی از فیلدهای can_... true دارند
+        """
+        return super().list(request, *args, **kwargs)
+    
+    @extend_schema(
+        responses={200: AdminListSerializer},
+        description="جزئیات یک ادمین",
+        summary="جزئیات ادمین"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        """
+        نمایش جزئیات یک ادمین
+        """
+        return super().retrieve(request, *args, **kwargs)
+    
+    @extend_schema(
+        request=AdminCreateSerializer,
+        responses={201: AdminListSerializer, 400: ErrorResponseSerializer},
+        description="ایجاد ادمین جدید. employee_id کارمند موجود + فیلدهای دسترسی را ارسال کنید.",
+        summary="ایجاد ادمین جدید"
+    )
+    def create(self, request, *args, **kwargs):
+        """
+        ایجاد ادمین جدید (تبدیل کارمند به ادمین)
+        
+        Body:
+            {
+                "employee_id": 5,
+                "can_manage_shifts": true,
+                "can_manage_blog": false,
+                ...
+            }
+        
+        منطق:
+        - بررسی اینکه employee وجود داشته باشد (validation در serializer)
+        - بررسی اینکه employee قبلاً ادمین نباشد (حداقل یک دسترسی true داشته باشد)
+        - تنظیم فیلدهای دسترسی
+        - تنظیم is_staff=True برای user مرتبط
+        """
+        serializer = AdminCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        validated_data = serializer.validated_data
+        employee = validated_data['employee_id']
+        
+        # بررسی اینکه employee قبلاً ادمین نباشد
+        if self._has_any_permission(employee):
+            return Response(
+                {'error': 'این کارمند قبلاً ادمین است. از PATCH برای بروزرسانی استفاده کنید.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # بروزرسانی دسترسی‌ها
+        with transaction.atomic():
+            self._update_permissions(employee, validated_data)
+            
+            # تنظیم is_staff=True برای user مرتبط (اگر قبلاً نبود)
+            if not employee.user.is_staff:
+                employee.user.is_staff = True
+                employee.user.save()
+        
+        # برگرداندن employee با AdminListSerializer
+        response_serializer = AdminListSerializer(employee)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+    
+    @extend_schema(
+        request=AdminCreateSerializer,
+        responses={200: AdminListSerializer, 400: ErrorResponseSerializer},
+        description="بروزرسانی کامل دسترسی‌های ادمین (PUT)",
+        summary="بروزرسانی کامل ادمین"
+    )
+    def update(self, request, *args, **kwargs):
+        """
+        بروزرسانی کامل دسترسی‌های ادمین (PUT)
+        employee_id قابل تغییر نیست (read-only)
+        """
+        return self.partial_update(request, *args, **kwargs)
+    
+    @extend_schema(
+        request=AdminCreateSerializer,
+        responses={200: AdminListSerializer, 400: ErrorResponseSerializer},
+        description="بروزرسانی جزئی دسترسی‌های ادمین (PATCH). فقط فیلدهای دسترسی قابل تغییر هستند.",
+        summary="بروزرسانی جزئی ادمین"
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """
+        بروزرسانی جزئی دسترسی‌های ادمین (PATCH)
+        
+        Body:
+            {
+                "can_manage_shifts": false,
+                "can_manage_blog": true,
+                ...
+            }
+        
+        منطق:
+        - فقط فیلدهای دسترسی قابل تغییر هستند
+        - employee_id قابل تغییر نیست (read-only)
+        - اگر همه دسترسی‌ها false شوند، is_staff=False می‌شود
+        """
+        instance = self.get_object()
+        
+        # ساخت serializer بدون employee_id (چون در update نباید ارسال شود)
+        serializer_data = request.data.copy()
+        serializer_data.pop('employee_id', None)  # حذف employee_id اگر ارسال شده
+        
+        serializer = AdminCreateSerializer(data=serializer_data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        validated_data = serializer.validated_data
+        
+        # گرفتن مقادیر فعلی برای فیلدهایی که ارسال نشده‌اند
+        permission_fields = [
+            'can_manage_shifts',
+            'can_manage_blog',
+            'can_approve_registrations',
+            'can_manage_khadamyaran',
+            'can_manage_site_settings',
+            'can_manage_admins',
+        ]
+        
+        # اگر partial=True، فقط فیلدهای ارسال شده را تغییر می‌دهیم
+        # برای فیلدهای ارسال نشده، از مقادیر فعلی استفاده می‌کنیم
+        final_data = {}
+        for field in permission_fields:
+            if field in validated_data:
+                final_data[field] = validated_data[field]
+            else:
+                final_data[field] = getattr(instance, field)
+        
+        # بررسی اینکه حداقل یک دسترسی true باشد
+        if not any(final_data.values()):
+            return Response(
+                {'error': 'حداقل یکی از دسترسی‌های ادمینی باید فعال باشد.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # بروزرسانی دسترسی‌ها
+        with transaction.atomic():
+            for field, value in final_data.items():
+                setattr(instance, field, value)
+            instance.save()
+            
+            # بررسی اینکه آیا هنوز دسترسی دارد یا نه
+            if not self._has_any_permission(instance):
+                # اگر همه دسترسی‌ها false شدند، is_staff=False می‌کنیم
+                instance.user.is_staff = False
+                instance.user.save()
+            else:
+                # اگر حداقل یک دسترسی دارد، is_staff=True
+                if not instance.user.is_staff:
+                    instance.user.is_staff = True
+                    instance.user.save()
+        
+        response_serializer = AdminListSerializer(instance)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+    
+    @extend_schema(
+        responses={204: None, 403: ErrorResponseSerializer},
+        description="حذف ادمین. همه دسترسی‌ها false می‌شوند و is_staff=False می‌شود.",
+        summary="حذف ادمین"
+    )
+    def destroy(self, request, *args, **kwargs):
+        """
+        حذف ادمین
+        
+        منطق:
+        - همه فیلدهای دسترسی (can_...) false می‌شوند
+        - is_staff=False می‌شود
+        - رکورد Employee حذف نمی‌شود، فقط دسترسی‌ها غیرفعال می‌شوند
+        """
+        instance = self.get_object()
+        
+        # بررسی اینکه سوپرادمین نباشد
+        if instance.user.is_superuser:
+            return Response(
+                {'error': 'نمی‌توان سوپرادمین را حذف کرد.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # غیرفعال کردن همه دسترسی‌ها
+        with transaction.atomic():
+            instance.can_manage_shifts = False
+            instance.can_manage_blog = False
+            instance.can_approve_registrations = False
+            instance.can_manage_khadamyaran = False
+            instance.can_manage_site_settings = False
+            instance.can_manage_admins = False
+            instance.save()
+            
+            # تنظیم is_staff=False
+            instance.user.is_staff = False
+            instance.user.save()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

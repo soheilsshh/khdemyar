@@ -8,7 +8,7 @@ from .views import (AdminManagementViewSet,
 router = DefaultRouter()
 router.register('employees', EmployeeViewSet, basename='employee')
 router.register('shifts', ShiftViewSet, basename='shift')
-router.register('admins', AdminManagementViewSet, basename='admin-users')
+router.register('admin', AdminManagementViewSet, basename='admin')
 
 urlpatterns = [
     path('', include(router.urls)),
