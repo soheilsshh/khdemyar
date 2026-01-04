@@ -113,6 +113,7 @@ class Shift(models.Model):
         User, on_delete=models.SET_NULL, null=True, related_name='created_shifts', verbose_name="ایجادکننده"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان ایجاد")
+    description = models.TextField(blank=True, null=True, verbose_name="توضیحات شیفت")
 
     class Meta:
         ordering = ['-start_time']
