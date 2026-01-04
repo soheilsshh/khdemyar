@@ -1,8 +1,7 @@
-from rest_framework import viewsets, status , permissions
+from rest_framework import viewsets, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import filters
-
 
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -10,7 +9,9 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 
-from .models import Employee, Shift
+from drf_spectacular.utils import extend_schema
+
+from .models import Employee, Shift, ShiftRequest
 from .serializers import *
 from .permissions import *
 from .filters import EmployeeFilter
@@ -147,29 +148,85 @@ class ShiftViewSet(viewsets.ModelViewSet):
         serializer = ShiftRequestSerializer(requests, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=ShiftRequestActionSerializer,
+        responses={
+            200: ShiftRequestActionResponseSerializer,
+            400: ErrorResponseSerializer,
+            404: ErrorResponseSerializer
+        },
+        description="تایید درخواست شیفت. request_id درخواست مورد نظر را ارسال کنید.",
+        summary="تایید درخواست شیفت"
+    )
     @action(detail=True, methods=['post'], url_path='approve_request')
     def approve_request(self, request, pk=None):
+        """
+        تایید درخواست شیفت
+        
+        Body:
+            {
+                "request_id": 123
+            }
+        
+        Response:
+            {
+                "status": "approved"
+            }
+        """
+        serializer = ShiftRequestActionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         shift = self.get_object()
-        request_id = request.data.get('request_id')
+        request_id = serializer.validated_data['request_id']
+        
         try:
             shift_request = shift.requests.get(id=request_id)
-            shift_request.approve()
-            return Response({'status': 'approved'})
+            shift_request.approve(approved_by=request.user)
+            return Response({'status': 'approved'}, status=status.HTTP_200_OK)
         except ShiftRequest.DoesNotExist:
-            return Response({'error': 'Request not found'}, status=404)
+            return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
         except ValueError as e:
-            return Response({'error': str(e)}, status=400)
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        request=ShiftRequestActionSerializer,
+        responses={
+            200: ShiftRequestActionResponseSerializer,
+            400: ErrorResponseSerializer,
+            404: ErrorResponseSerializer
+        },
+        description="رد درخواست شیفت. request_id درخواست مورد نظر را ارسال کنید.",
+        summary="رد درخواست شیفت"
+    )
     @action(detail=True, methods=['post'], url_path='reject_request')
     def reject_request(self, request, pk=None):
+        """
+        رد درخواست شیفت
+        
+        Body:
+            {
+                "request_id": 123
+            }
+        
+        Response:
+            {
+                "status": "rejected"
+            }
+        """
+        serializer = ShiftRequestActionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         shift = self.get_object()
-        request_id = request.data.get('request_id')
+        request_id = serializer.validated_data['request_id']
+        
         try:
             shift_request = shift.requests.get(id=request_id)
             shift_request.reject()
-            return Response({'status': 'rejected'})
+            return Response({'status': 'rejected'}, status=status.HTTP_200_OK)
         except ShiftRequest.DoesNotExist:
-            return Response({'error': 'Request not found'}, status=404)
+            return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['post'], url_path='request')
     def request_shift(self, request, pk=None):

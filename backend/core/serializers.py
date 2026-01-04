@@ -352,6 +352,40 @@ class ShiftRequestSerializer(serializers.ModelSerializer):
             'employee_national_id', 'requested_at'
         ]
 
+
+class ShiftRequestActionSerializer(serializers.Serializer):
+    """
+    Serializer مشترک برای approve_request و reject_request
+    فقط request_id مورد نیاز است
+    """
+    request_id = serializers.IntegerField(
+        required=True,
+        help_text="ID درخواست شیفت که باید approve یا reject شود"
+    )
+
+    def validate_request_id(self, value):
+        """
+        Validation: بررسی اینکه request_id مثبت باشد
+        """
+        if value <= 0:
+            raise serializers.ValidationError("request_id باید عدد مثبت باشد.")
+        return value
+
+
+class ShiftRequestActionResponseSerializer(serializers.Serializer):
+    """
+    Serializer برای پاسخ approve_request و reject_request
+    """
+    status = serializers.CharField(help_text="وضعیت عملیات (approved یا rejected)")
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    """
+    Serializer برای پاسخ خطا
+    """
+    error = serializers.CharField(help_text="پیغام خطا")
+
+
 class ShiftDetailSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     current_males = serializers.IntegerField(source='current_males_count', read_only=True)

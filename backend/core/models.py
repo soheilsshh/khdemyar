@@ -170,11 +170,18 @@ class ShiftRequest(models.Model):
     def __str__(self):
         return f"درخواست {self.employee} برای {self.shift}"
 
-    def approve(self):
+    def approve(self, approved_by=None):
+        """
+        تایید درخواست شیفت
+        
+        Args:
+            approved_by: کاربری که درخواست را تایید می‌کند (مدیر فعلی)
+        """
         if self.shift.is_full(self.employee.gender):
             raise ValueError("ظرفیت شیفت پر شده است.")
         self.status = 'approved'
-        self.approved_by = self.approved_by or self.shift.created_by  
+        if approved_by:
+            self.approved_by = approved_by
         self.save()
         
         ShiftAssignment.objects.create(shift=self.shift, employee=self.employee)
