@@ -108,6 +108,8 @@ class Shift(models.Model):
     occasion = models.CharField(max_length=100, blank=True, null=True, verbose_name="مناسبت")
     max_males = models.PositiveIntegerField(default=0, verbose_name="حداکثر تعداد مردان")  # ظرفیت مردان
     max_females = models.PositiveIntegerField(default=0, verbose_name="حداکثر تعداد زنان")  # ظرفیت زنان
+    min_emp = models.PositiveIntegerField(default=0, verbose_name="حداقل تعداد کارکنان")
+    max_emp = models.PositiveIntegerField(default=0, verbose_name="حداکثر تعداد کارکنان")
     is_active = models.BooleanField(default=True, verbose_name="فعال")
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='created_shifts', verbose_name="ایجادکننده"

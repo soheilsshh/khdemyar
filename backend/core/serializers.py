@@ -273,16 +273,51 @@ class ShiftSerializer(serializers.ModelSerializer):
             'start_time',
             'end_time',
             'occasion',
-            'max_males',
-            'max_females',
+            'min_emp',          # جدید - کلی
+            'max_emp',          # جدید - کلی
+            'max_males',        # قبلی
+            'max_females',      # قبلی
             'current_males',
             'current_females',
             'is_active',
             'created_by',
             'created_by_name',
             'created_at',
+            'description',
         ]
-        read_only_fields = ['created_by', 'created_by_name', 'created_at', 'current_males', 'current_females']
+        read_only_fields = ['created_by', 'created_by_name', 'created_at', 
+                           'current_males', 'current_females']
+
+    def validate(self, data):
+        errors = {}
+        
+        min_emp = data.get('min_emp', 0)
+        max_emp = data.get('max_emp', 0)
+        max_males = data.get('max_males', 0)
+        max_females = data.get('max_females', 0)
+        
+        if min_emp > max_emp:
+            errors['min_emp'] = "حداقل تعداد کارکنان نمی‌تواند بیشتر از حداکثر باشد."
+        
+
+        if min_emp < 0:
+            errors['min_emp'] = "حداقل تعداد کارکنان نمی‌تواند منفی باشد."
+        if max_emp < 0:
+            errors['max_emp'] = "حداکثر تعداد کارکنان نمی‌تواند منفی باشد."
+        if max_males < 0:
+            errors['max_males'] = "حداکثر مردان نمی‌تواند منفی باشد."
+        if max_females < 0:
+            errors['max_females'] = "حداکثر زنان نمی‌تواند منفی باشد."
+        
+        # چک ۳: مجموع max_males + max_females دقیقاً برابر max_emp باشه
+        if max_males + max_females != max_emp:
+            errors['max_emp'] = "مجموع حداکثر مردان و زنان باید دقیقاً برابر با حداکثر کل کارکنان باشد."
+        
+        # اگر خطایی بود، raise کن
+        if errors:
+            raise serializers.ValidationError(errors)
+        
+        return data
 
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
