@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Employee, Shift , ShiftRequest
-
+from django.utils import timezone
 User = get_user_model()
 
 
@@ -55,6 +55,7 @@ class EmployeeListSerializer(serializers.ModelSerializer):
                   'can_manage_khadamyaran',
                   'can_manage_site_settings',
                   ]
+
 
 class EmployeeSerializer(serializers.ModelSerializer):
     user = UserShortSerializer(read_only=True)
@@ -222,6 +223,43 @@ class ShiftListSerializer(serializers.ModelSerializer):
                 return False
         return False
 
+
+class EmployeeDetailStatsSerializer(serializers.ModelSerializer):
+    shifts_history = serializers.SerializerMethodField()
+    employee = EmployeeListSerializer(source='*', read_only=True)
+    
+    total_shifts_count = serializers.IntegerField(read_only=True)
+    monthly_average_shifts = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Employee
+        fields = [
+            'id',
+            'user',
+            'user_id',
+            'employee',
+            'total_shifts_count', 'monthly_average_shifts', 
+            'shifts_history'
+        ]
+
+#    def get_shifts_history(self, obj):
+#        return ShiftAssignment.objects.filter(employee=obj).values('shift__start_time', 'shift__end_time', 'shift__occasion')
+    def get_shifts_history(self, obj):
+        shifts = [assignment.shift for assignment in obj.assigned_shifts.all()]
+        return ShiftListSerializer(shifts, many=True, context=self.context).data
+
+
+    def get_monthly_average_shifts(self, obj):
+        if not obj.registration_date:
+            return 0
+        
+        delta = timezone.now().date() - obj.registration_date
+        months_elapsed = delta.days / 30
+        
+        if months_elapsed < 1:
+            return obj.total_shifts_count
+            
+        return round(obj.total_shifts_count / months_elapsed, 2)
 
 class ShiftSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)

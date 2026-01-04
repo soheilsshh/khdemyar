@@ -38,11 +38,13 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             return EmployeeListSerializer
         if self.action == 'change_password':
             return ChangePasswordSerializer
+        if self.action == 'detailed':
+            return EmployeeDetailStatsSerializer
         return EmployeeSerializer
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if self.action in ['list', 'retrieve', 'me']:
+        if self.action in ['list', 'retrieve', 'me', 'detailed']:
             queryset = queryset.annotate(total_shifts_count=Count('assigned_shifts'))
         if not (self.request.user.is_admin or self.request.user.is_staff):
             queryset = queryset.filter(user=self.request.user)
@@ -86,6 +88,13 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             return Response({"message": "پسورد با موفقیت تغییر کرد."}, status=status.HTTP_200_OK)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(detail=True, methods=['get'], url_path='detailed')
+    def detailed(self, request, pk=None):
+        employee = self.get_queryset().prefetch_related('assigned_shifts__shift').get(pk=pk)
+        serializer = EmployeeDetailStatsSerializer(employee)
+        return Response(serializer.data)
 
 
 class ShiftViewSet(viewsets.ModelViewSet):
