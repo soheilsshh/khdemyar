@@ -85,6 +85,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'national_id',
             'father_name',
             'birth_date',
+            'birth_place',
+            'identity_number',
             'gender',
             'marital_status',
             'children_count',
@@ -157,6 +159,8 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'ref1_phone': {'required': False},
             'ref2_name': {'required': False},
             'ref2_phone': {'required': False},
+            'birth_place': {'required': True},
+            'identity_number': {'required': True},
         }
 
     def create(self, validated_data):

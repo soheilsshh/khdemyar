@@ -25,6 +25,8 @@ class Employee(models.Model):
     national_id = models.CharField(max_length=10, unique=True)
     father_name = models.CharField(max_length=50)
     birth_date = models.DateField()
+    birth_place = models.CharField(max_length=100, verbose_name="محل تولد")
+    identity_number = models.CharField(max_length=10, verbose_name="شماره شناسنامه")
     gender = models.CharField(max_length=10, choices=[
         ("male", "مرد"),
         ("female", "زن")

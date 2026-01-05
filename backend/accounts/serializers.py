@@ -50,9 +50,11 @@ class EmployeeRegisterSerializer(serializers.ModelSerializer):
             'phone_number',
             'first_name', 
             'last_name', 
-            'national_id', 
-            'father_name', 
+            'national_id',
+            'father_name',
             'birth_date',
+            'birth_place',
+            'identity_number',
             'gender', 
             
             'marital_status', 
@@ -86,6 +88,8 @@ class EmployeeRegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'national_id': {'validators': []},
             'profile_image': {'required': False},
+            'birth_place': {'required': True},
+            'identity_number': {'required': True},
         }
 
     def validate(self, attrs):
@@ -95,6 +99,19 @@ class EmployeeRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"phone_number": "این شماره موبایل قبلاً ثبت شده است."})
         if Employee.objects.filter(national_id=attrs['national_id']).exists():
             raise serializers.ValidationError({"national_id": "کارمندی با این کد ملی قبلاً ثبت‌نام کرده است."})
+
+        # اعتبارسنجی شماره شناسنامه (اجباری - باید دقیقاً ۱۰ رقم عددی باشد)
+        identity_number = attrs.get('identity_number')
+        if not identity_number:
+            raise serializers.ValidationError({"identity_number": "شماره شناسنامه الزامی است."})
+        if len(identity_number) != 10 or not identity_number.isdigit():
+            raise serializers.ValidationError({"identity_number": "شماره شناسنامه باید دقیقاً ۱۰ رقم عددی باشد."})
+
+        # اعتبارسنجی محل تولد (اجباری)
+        birth_place = attrs.get('birth_place')
+        if not birth_place:
+            raise serializers.ValidationError({"birth_place": "محل تولد الزامی است."})
+
         return attrs
 
     def create(self, validated_data):
