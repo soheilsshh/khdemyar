@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 from .models import Employee, Shift , ShiftRequest , ShiftAssignment
 from django.utils import timezone
+from django.db.models.functions import ExtractMonth
+from django.db.models import Count
 User = get_user_model()
 
 
@@ -254,24 +256,19 @@ class EmployeeDetailStatsSerializer(serializers.ModelSerializer):
 
         return round(obj.total_shifts_count / months_elapsed, 2)
 
-    @extend_schema_field(OpenApiTypes.LIST)
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_monthly_shifts_current_year(self, obj):
         """
         محاسبه تعداد شیفت‌ها برای هر ماه سال جاری
-        خروجی: لیست ۱۲ تایی با تعداد شیفت هر ماه
+        خروجی: لیست ۱۲ تایی با تعداد شیفت هر ماه [count_month1, count_month2, ..., count_month12]
         """
-        from django.db.models import Count
-        from django.utils import timezone
-        import calendar
-
         current_year = timezone.now().year
 
-        # استفاده از aggregation برای محاسبه تعداد شیفت هر ماه
+        # استفاده از Django database functions برای سازگاری با همه databaseها
         monthly_counts = (
-            obj.assigned_shifts.filter(
-                shift__start_time__year=current_year
-            )
-            .extra(select={'month': 'EXTRACT(MONTH FROM core_shift.start_time)'})
+            obj.assigned_shifts
+            .filter(shift__start_time__year=current_year)
+            .annotate(month=ExtractMonth('shift__start_time'))
             .values('month')
             .annotate(count=Count('id'))
             .order_by('month')
@@ -281,9 +278,7 @@ class EmployeeDetailStatsSerializer(serializers.ModelSerializer):
         count_dict = {item['month']: item['count'] for item in monthly_counts}
 
         # ایجاد لیست ۱۲ تایی (ماه ۱ تا ۱۲)
-        result = []
-        for month in range(1, 13):
-            result.append(count_dict.get(month, 0))
+        result = [count_dict.get(month, 0) for month in range(1, 13)]
 
         return result
 
