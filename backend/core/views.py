@@ -38,6 +38,8 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['list', 'me']:
             return EmployeeListSerializer
+        if self.action == 'active-emp':
+            return ActiveEmployeeListSerializer
         if self.action == 'change_password':
             return ChangePasswordSerializer
         if self.action == 'detailed':
@@ -63,18 +65,43 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(employee)
         return Response(serializer.data)
     
+    @extend_schema(
+        responses={200: ActiveEmployeeListSerializer(many=True)},
+        description="لیست کارمندان فعال (کارمندانی که در شیفت‌های فعال امروز حضور دارند) با pagination",
+        summary="کارمندان فعال امروز"
+    )
     @action(detail=False, methods=['get'], url_path='active-emp')
     def active_emp(self, request):
-        now = timezone.now()
-        active_employees = Employee.objects.filter(
-            assigned_shifts__start_time__lte=now,
-            assigned_shifts__end_time__gte=now,
-            assigned_shifts__shift__is_active=True  
-        ).select_related('user').annotate(
-            total_shifts_count=Count('assigned_shifts')
-        ).distinct()
+        """
+        نمایش لیست کارمندان فعال (کارمندانی که در شیفت‌های فعال امروز حضور دارند)
 
-        serializer = EmployeeListSerializer(active_employees, many=True)
+        تعریف کارمند فعال:
+        - کارمندی که در تاریخ امروز حداقل در یک شیفت فعال حضور دارد
+        - شیفت فعال: شیفتی که تاریخ امروز بین start_time و end_time آن قرار دارد
+        """
+        today = timezone.now().date()
+
+        # فیلتر کارمندانی که در شیفت‌های فعال امروز حضور دارند
+        active_employees = (
+            Employee.objects
+            .filter(
+                # کارمند باید assignment در شیفت‌های فعال امروز داشته باشد
+                assigned_shifts__shift__start_time__date__lte=today,
+                assigned_shifts__shift__end_time__date__gte=today,
+                assigned_shifts__shift__is_active=True
+            )
+            .annotate(total_shifts_count=Count('assigned_shifts'))
+            .distinct()
+            .order_by('first_name', 'last_name')
+        )
+
+        # اعمال pagination
+        page = self.paginate_queryset(active_employees)
+        if page is not None:
+            serializer = ActiveEmployeeListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = ActiveEmployeeListSerializer(active_employees, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'], url_path='me/change-password')

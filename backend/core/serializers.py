@@ -37,7 +37,7 @@ class EmployeeListSerializer(serializers.ModelSerializer):
     can_approve_registrations = serializers.BooleanField()
     can_manage_khadamyaran = serializers.BooleanField()
     can_manage_site_settings = serializers.BooleanField()
-    
+
     class Meta:
         model = Employee
         fields = ['id',
@@ -58,6 +58,25 @@ class EmployeeListSerializer(serializers.ModelSerializer):
                   'can_manage_khadamyaran',
                   'can_manage_site_settings',
                   ]
+
+
+class ActiveEmployeeListSerializer(serializers.ModelSerializer):
+    """
+    Serializer برای نمایش کارمندان فعال (کارمندانی که در شیفت‌های فعال امروز حضور دارند)
+    فقط فیلدهای ضروری برای عملکرد بهتر و response کوچکتر
+    """
+    total_shifts_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Employee
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'phone',
+            'total_shifts_count',
+            'criminal_record'
+        ]
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -264,7 +283,6 @@ class EmployeeDetailStatsSerializer(serializers.ModelSerializer):
         """
         current_year = timezone.now().year
 
-        # استفاده از Django database functions برای سازگاری با همه databaseها
         monthly_counts = (
             obj.assigned_shifts
             .filter(shift__start_time__year=current_year)
