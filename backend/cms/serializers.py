@@ -4,6 +4,7 @@ from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from django.core.validators import EmailValidator
 from .models import *
+from core.models import Employee, Shift
 
 
 class NewsListSerializer(serializers.ModelSerializer):
