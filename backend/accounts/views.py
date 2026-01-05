@@ -164,7 +164,7 @@ class RegistrationRequestViewSet(viewsets.ModelViewSet):
     # تأیید درخواست
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        employee = self.get_object() 
+        employee = self.get_object()
         if employee.status != 'pending':
             return Response({'detail': 'این درخواست قبلاً بررسی شده است.'}, status=400)
 
@@ -173,8 +173,9 @@ class RegistrationRequestViewSet(viewsets.ModelViewSet):
         employee.user.is_approved = True
         employee.user.save()
 
-        # تغییر وضعیت کارمند
+        # تغییر وضعیت کارمند و ثبت تأییدکننده
         employee.status = 'approved'
+        employee.approved_by = request.user  # ثبت کاربری که درخواست را تأیید کرده
         employee.save()
 
         return Response({
