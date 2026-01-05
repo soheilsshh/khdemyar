@@ -123,7 +123,9 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
     
     'ENUM_NAME_OVERRIDES': {
-        'EmployeeStatusEnum': 'core.models.Employee.STATUS_CHOICES', 
+        'EmployeeStatusEnum': 'core.models.Employee.status.field.choices',
+        'ShiftRequestStatusEnum': 'core.models.ShiftRequest.status.field.choices',
+        'FeedbackStatusEnum': 'cms.models.Feedback.status.field.choices',
     },
     'POSTPROCESSING_HOOKS': [
         'drf_spectacular.hooks.postprocess_schema_enums'

@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from django.utils import timezone
 from django.db import transaction
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiTypes
 
 from core.permissions import IsActiveAdmin, CanManageBlog
 from core.pagination import PersianPagination
@@ -87,11 +87,20 @@ class AboutUsView(APIView):
 
 
 class DashboardView(APIView):
-    permission_classes = [IsAuthenticated, IsActiveAdmin]  
+    permission_classes = [IsAuthenticated, IsActiveAdmin]
 
+    @extend_schema(
+        responses={
+            200: DashboardSerializer,
+            401: OpenApiTypes.OBJECT,
+            403: OpenApiTypes.OBJECT
+        },
+        description="دریافت آمار کلی داشبورد مدیریتی شامل تعداد کارمندان، شیفت‌های تکمیل شده، بازدیدهای ماه جاری و رشد ماهانه.",
+        summary="آمار داشبورد مدیریتی"
+    )
     def get(self, request):
         """دریافت آمار داشبورد"""
-        serializer = DashboardSerializer({})  
+        serializer = DashboardSerializer({})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class VisitTrackView(APIView):
@@ -113,7 +122,7 @@ class VisitTrackView(APIView):
         request=VisitCreateSerializer,
         responses={
             204: None,
-            400: 'Bad Request'
+            400: OpenApiTypes.OBJECT
         },
         description="ثبت بازدید صفحه از سمت فرانت‌اند. IP و user_agent به صورت خودکار استخراج می‌شوند.",
         summary="ثبت بازدید صفحه"
@@ -377,7 +386,11 @@ class ContactInfoView(APIView):
     
     @extend_schema(
         request=ContactInfoSerializer,
-        responses={200: ContactInfoSerializer, 403: 'Forbidden'},
+        responses={
+            200: ContactInfoSerializer,
+            400: OpenApiTypes.OBJECT,
+            403: OpenApiTypes.OBJECT
+        },
         description="ویرایش کامل اطلاعات تماس (PUT). فقط برای ادمین‌ها قابل دسترسی است.",
         summary="ویرایش کامل اطلاعات تماس"
     )
@@ -402,7 +415,11 @@ class ContactInfoView(APIView):
     
     @extend_schema(
         request=ContactInfoSerializer,
-        responses={200: ContactInfoSerializer, 403: 'Forbidden'},
+        responses={
+            200: ContactInfoSerializer,
+            400: OpenApiTypes.OBJECT,
+            403: OpenApiTypes.OBJECT
+        },
         description="ویرایش جزئی اطلاعات تماس (PATCH). فقط برای ادمین‌ها قابل دسترسی است.",
         summary="ویرایش جزئی اطلاعات تماس"
     )

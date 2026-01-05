@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Employee, Shift , ShiftRequest
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
+from .models import Employee, Shift , ShiftRequest , ShiftAssignment
 from django.utils import timezone
 User = get_user_model()
 
@@ -66,11 +67,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
         required=False
     )
 
-    # نمایش نام کامل تأییدکننده (اگر فیلد approved_by داری)
-    approved_by_name = serializers.CharField(
-        source='approved_by.get_full_name' if hasattr(Employee, 'approved_by') else None,
-        read_only=True
-    )
 
     class Meta:
         model = Employee
@@ -143,7 +139,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
             'employment_date',
             'registration_date',
             'shift_count',
-            'approved_by_name',
             'is_staff_admin',
         ]
 
@@ -228,11 +223,11 @@ class ShiftListSerializer(serializers.ModelSerializer):
 
 
 class EmployeeDetailStatsSerializer(serializers.ModelSerializer):
-    shifts_history = serializers.SerializerMethodField()
     employee = EmployeeListSerializer(source='*', read_only=True)
-    
+
     total_shifts_count = serializers.IntegerField(read_only=True)
     monthly_average_shifts = serializers.SerializerMethodField()
+    monthly_shifts_current_year = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
@@ -241,28 +236,74 @@ class EmployeeDetailStatsSerializer(serializers.ModelSerializer):
             'user',
             'user_id',
             'employee',
-            'total_shifts_count', 'monthly_average_shifts', 
-            'shifts_history'
+            'total_shifts_count',
+            'monthly_average_shifts',
+            'monthly_shifts_current_year'
         ]
 
-#    def get_shifts_history(self, obj):
-#        return ShiftAssignment.objects.filter(employee=obj).values('shift__start_time', 'shift__end_time', 'shift__occasion')
-    def get_shifts_history(self, obj):
-        shifts = [assignment.shift for assignment in obj.assigned_shifts.all()]
-        return ShiftListSerializer(shifts, many=True, context=self.context).data
-
-
+    @extend_schema_field(OpenApiTypes.FLOAT)
     def get_monthly_average_shifts(self, obj):
         if not obj.registration_date:
             return 0
-        
+
         delta = timezone.now().date() - obj.registration_date
         months_elapsed = delta.days / 30
-        
+
         if months_elapsed < 1:
             return obj.total_shifts_count
-            
+
         return round(obj.total_shifts_count / months_elapsed, 2)
+
+    @extend_schema_field(OpenApiTypes.LIST)
+    def get_monthly_shifts_current_year(self, obj):
+        """
+        محاسبه تعداد شیفت‌ها برای هر ماه سال جاری
+        خروجی: لیست ۱۲ تایی با تعداد شیفت هر ماه
+        """
+        from django.db.models import Count
+        from django.utils import timezone
+        import calendar
+
+        current_year = timezone.now().year
+
+        # استفاده از aggregation برای محاسبه تعداد شیفت هر ماه
+        monthly_counts = (
+            obj.assigned_shifts.filter(
+                shift__start_time__year=current_year
+            )
+            .extra(select={'month': 'EXTRACT(MONTH FROM core_shift.start_time)'})
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+
+        # تبدیل به دیکشنری برای دسترسی سریع
+        count_dict = {item['month']: item['count'] for item in monthly_counts}
+
+        # ایجاد لیست ۱۲ تایی (ماه ۱ تا ۱۲)
+        result = []
+        for month in range(1, 13):
+            result.append(count_dict.get(month, 0))
+
+        return result
+
+
+class EmployeeShiftHistorySerializer(serializers.ModelSerializer):
+    """
+    سریالایزر برای نمایش تاریخچه شیفت‌های کارمند
+    از ShiftAssignment استفاده می‌کند تا اطلاعات تخصیص را داشته باشیم
+    """
+    approved_at = serializers.DateTimeField(source='assigned_at', read_only=True)
+    occasion = serializers.CharField(source='shift.occasion', read_only=True)
+
+    class Meta:
+        model = ShiftAssignment
+        fields = [
+            'id',
+            'approved_at',  # تاریخ تخصیص (معادل approved_at)
+            'occasion'     # عنوان رویداد شیفت
+        ]
+
 
 class ShiftSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)

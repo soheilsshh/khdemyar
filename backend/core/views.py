@@ -98,6 +98,32 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         serializer = EmployeeDetailStatsSerializer(employee)
         return Response(serializer.data)
 
+    @extend_schema(
+        responses={200: EmployeeShiftHistorySerializer(many=True)},
+        description="لیست شیفت‌های تخصیص‌یافته به کارمند با pagination",
+        summary="تاریخچه شیفت‌های کارمند"
+    )
+    @action(detail=True, methods=['get'], url_path='shifts')
+    def shifts(self, request, pk=None):
+        """
+        نمایش لیست paginated شیفت‌های تخصیص‌یافته به کارمند
+        دسترسی: ادمین یا خود کاربر (IsAdminOrSelf)
+        مرتب‌سازی: بر اساس assigned_at نزولی
+        """
+        employee = self.get_object()
+
+        # گرفتن شیفت‌های تخصیص‌یافته با مرتب‌سازی نزولی بر اساس زمان تخصیص
+        assignments = employee.assigned_shifts.select_related('shift').order_by('-assigned_at')
+
+        # اعمال pagination خودکار توسط ViewSet
+        page = self.paginate_queryset(assignments)
+        if page is not None:
+            serializer = EmployeeShiftHistorySerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = EmployeeShiftHistorySerializer(assignments, many=True)
+        return Response(serializer.data)
+
 
 class ShiftViewSet(viewsets.ModelViewSet):
     queryset = Shift.objects.all()
