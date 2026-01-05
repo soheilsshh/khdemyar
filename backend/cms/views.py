@@ -11,6 +11,7 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 
 from core.permissions import IsActiveAdmin, CanManageBlog
+from core.pagination import PersianPagination
 from .models import *
 from .serializers import *
 
@@ -25,6 +26,7 @@ class NewsViewSet(viewsets.ModelViewSet):
     """
     queryset = News.objects.all().order_by('-date')
     serializer_class = NewsSerializer
+    pagination_class = PersianPagination
 
     def get_permissions(self):
         """All CRUD operations require IsAuthenticated, IsActiveAdmin, and CanManageBlog"""
@@ -217,11 +219,11 @@ class VisitStatsView(APIView):
 class FeedbackViewSet(viewsets.ModelViewSet):
     """
     ViewSet برای مدیریت بازخوردهای کاربران
-    
+
     قابلیت‌ها:
     - create: برای همه کاربران (AllowAny) - ثبت بازخورد جدید
     - list, retrieve, update, partial_update, destroy: فقط برای ادمین‌ها (IsActiveAdmin)
-    
+
     ساختار:
     - استفاده از ModelViewSet برای CRUD کامل
     - دو سریالایزر: FeedbackCreateSerializer برای create، FeedbackSerializer برای سایر عملیات
@@ -229,6 +231,7 @@ class FeedbackViewSet(viewsets.ModelViewSet):
     """
     queryset = Feedback.objects.all().order_by('-created_at')
     serializer_class = FeedbackSerializer
+    pagination_class = PersianPagination
     
     def get_permissions(self):
         """
@@ -426,17 +429,17 @@ class ContactInfoView(APIView):
 class SubtitleViewSet(viewsets.ModelViewSet):
     """
     ViewSet برای مدیریت زیرنویس‌های صفحه اصلی
-    
+
     قابلیت‌ها:
     - CRUD کامل: create, list, retrieve, update, partial_update, destroy
     - تمام عملیات فقط برای ادمین‌ها (IsAuthenticated + IsActiveAdmin + CanManageBlog)
     - action سفارشی: toggle-active (فعال/غیرفعال کردن زیرنویس)
-    
+
     منطق "فقط یکی active":
     - هنگام create/update/partial_update: اگر is_active=True باشد، بقیه خودکار غیرفعال می‌شوند
     - در action toggle-active: رکورد انتخاب شده فعال می‌شود و بقیه غیرفعال می‌شوند
     - استفاده از transaction برای اطمینان از atomic بودن عملیات
-    
+
     ساختار:
     - استفاده از ModelViewSet برای CRUD کامل
     - استفاده از CanManageBlog برای permission (مثل NewsViewSet)
@@ -444,6 +447,7 @@ class SubtitleViewSet(viewsets.ModelViewSet):
     """
     queryset = Subtitle.objects.all().order_by('-created_at')
     serializer_class = SubtitleSerializer
+    pagination_class = PersianPagination
     
     def get_permissions(self):
         """

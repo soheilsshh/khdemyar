@@ -10,6 +10,7 @@ import requests
 import random
 
 from core.models import Employee
+from core.pagination import PersianPagination
 from .models import OTPCode  
 
 
@@ -139,6 +140,7 @@ class RegistrationRequestViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.select_related('user').all()
     serializer_class = RegistrationRequestListSerializer
     permission_classes = [permissions.IsAdminUser]
+    pagination_class = PersianPagination
 
     def get_queryset(self):
         if self.action == 'pending_requests':

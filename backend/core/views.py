@@ -103,6 +103,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
     queryset = Shift.objects.all()
     serializer_class = ShiftSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = PersianPagination
 
     
     def get_serializer_class(self):
@@ -248,17 +249,17 @@ class ShiftViewSet(viewsets.ModelViewSet):
 class AdminManagementViewSet(viewsets.ModelViewSet):
     """
     ViewSet برای مدیریت ادمین‌های سیستم
-    
+
     قابلیت‌ها:
     - List: نمایش لیست ادمین‌ها (کارمندانی که حداقل یکی از can_... فیلدها true است)
     - Retrieve: نمایش جزئیات یک ادمین
     - Create: ایجاد ادمین جدید (تبدیل کارمند به ادمین با تنظیم دسترسی‌ها)
     - Update/Patch: بروزرسانی دسترسی‌های ادمین
     - Delete: حذف ادمین (همه دسترسی‌ها false + is_staff=False)
-    
+
     Permission:
     - CanManageAdmins: فقط کاربرانی که can_manage_admins=True دارند (یا سوپرادمین)
-    
+
     منطق:
     - فقط کارمندانی که حداقل یکی از فیلدهای can_... true دارند در لیست نمایش داده می‌شوند
     - هنگام ایجاد: employee_id + فیلدهای دسترسی ارسال می‌شود
@@ -266,6 +267,7 @@ class AdminManagementViewSet(viewsets.ModelViewSet):
     - هنگام حذف: همه دسترسی‌ها false می‌شوند و is_staff=False می‌شود
     """
     permission_classes = [CanManageAdmins]
+    pagination_class = PersianPagination
     
     def get_queryset(self):
         """

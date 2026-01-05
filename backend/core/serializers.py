@@ -127,7 +127,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
             # تأییدکننده (اختیاری)
             'approved_by',
-            'approved_by_name',
             
             'is_staff_admin',
             'can_manage_shifts',
