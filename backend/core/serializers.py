@@ -332,6 +332,7 @@ class ShiftSerializer(serializers.ModelSerializer):
             'occasion',
             'min_emp',          # جدید - کلی
             'max_emp',          # جدید - کلی
+            'gender_relevance', # جدید - اهمیت جنسیت
             'max_males',        # قبلی
             'max_females',      # قبلی
             'current_males',
@@ -347,15 +348,16 @@ class ShiftSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         errors = {}
-        
+
         min_emp = data.get('min_emp', 0)
         max_emp = data.get('max_emp', 0)
         max_males = data.get('max_males', 0)
         max_females = data.get('max_females', 0)
-        
+        gender_relevance = data.get('gender_relevance', 'important')
+
+        # validation پایه
         if min_emp > max_emp:
             errors['min_emp'] = "حداقل تعداد کارکنان نمی‌تواند بیشتر از حداکثر باشد."
-        
 
         if min_emp < 0:
             errors['min_emp'] = "حداقل تعداد کارکنان نمی‌تواند منفی باشد."
@@ -365,15 +367,25 @@ class ShiftSerializer(serializers.ModelSerializer):
             errors['max_males'] = "حداکثر مردان نمی‌تواند منفی باشد."
         if max_females < 0:
             errors['max_females'] = "حداکثر زنان نمی‌تواند منفی باشد."
-        
-        # چک ۳: مجموع max_males + max_females دقیقاً برابر max_emp باشه
-        if max_males + max_females != max_emp:
-            errors['max_emp'] = "مجموع حداکثر مردان و زنان باید دقیقاً برابر با حداکثر کل کارکنان باشد."
-        
+
+        # validation بر اساس اهمیت جنسیت
+        if gender_relevance == 'important':
+            # اگر جنسیت مهم است، باید max_males و max_females هر دو > 0 باشند
+            if max_males <= 0 or max_females <= 0:
+                errors['gender_relevance'] = "برای اهمیت جنسیت، ظرفیت مردان و زنان باید مشخص شود."
+            # مجموع max_males + max_females دقیقاً برابر max_emp باشه
+            elif max_males + max_females != max_emp:
+                errors['max_emp'] = "مجموع حداکثر مردان و زنان باید دقیقاً برابر با حداکثر کل کارکنان باشد."
+        else:  # gender_relevance == 'not_important'
+            # اگر جنسیت مهم نیست، باید min_emp و max_emp > 0 باشند
+            if min_emp <= 0 or max_emp <= 0:
+                errors['gender_relevance'] = "برای عدم اهمیت جنسیت، ظرفیت کلی باید مشخص شود."
+            # در این حالت نیازی به چک کردن max_males و max_females نیست
+
         # اگر خطایی بود، raise کن
         if errors:
             raise serializers.ValidationError(errors)
-        
+
         return data
 
     def create(self, validated_data):

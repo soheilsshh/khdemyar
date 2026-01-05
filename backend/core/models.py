@@ -112,6 +112,12 @@ class Shift(models.Model):
     max_females = models.PositiveIntegerField(default=0, verbose_name="حداکثر تعداد زنان")  # ظرفیت زنان
     min_emp = models.PositiveIntegerField(default=0, verbose_name="حداقل تعداد کارکنان")
     max_emp = models.PositiveIntegerField(default=0, verbose_name="حداکثر تعداد کارکنان")
+    gender_relevance = models.CharField(
+        max_length=20,
+        choices=[('important', 'مهم هست'), ('not_important', 'مهم نیست')],
+        default='important',
+        verbose_name="اهمیت جنسیت"
+    )
     is_active = models.BooleanField(default=True, verbose_name="فعال")
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name='created_shifts', verbose_name="ایجادکننده"
